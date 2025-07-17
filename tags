@@ -1,0 +1,71 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+MAX_THREADS	sched_boost.cpp	/^constexpr int MAX_THREADS = 32;$/;"	v
+MAX_THREADS	sched_workqueue.cpp	/^constexpr int MAX_THREADS = 32;$/;"	v
+Scheduler	sched_boost.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
+Scheduler	sched_boost.cpp	/^class Scheduler {$/;"	c	file:
+Scheduler	sched_workqueue.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
+Scheduler	sched_workqueue.cpp	/^class Scheduler {$/;"	c	file:
+Task	sched_boost.cpp	/^    Task(CoroCall* src, int tid, int uid)$/;"	f	struct:Task
+Task	sched_boost.cpp	/^struct Task {$/;"	s	file:
+Task	sched_workqueue.cpp	/^    Task(CoroCall* src, int tid, int uid)$/;"	f	struct:Task
+Task	sched_workqueue.cpp	/^    Task(CoroCall* src, int tid, int uid, int type)$/;"	f	struct:Task
+Task	sched_workqueue.cpp	/^struct Task {$/;"	s	file:
+coroutine_queue	sched_boost.cpp	/^    std::queue<Task> coroutine_queue;$/;"	m	class:Scheduler	file:
+coroutine_queue	sched_workqueue.cpp	/^    std::queue<Task> coroutine_queue;$/;"	m	class:Scheduler	file:
+emplace	sched_boost.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
+emplace	sched_workqueue.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
+enqueue_to_wait_list	sched_boost.cpp	/^    void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
+enqueue_to_wait_list	sched_workqueue.cpp	/^    void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
+get_type	sched_workqueue.cpp	/^    int get_type(){$/;"	f	struct:Task
+gettid	sched_boost.cpp	/^pid_t gettid() {$/;"	f
+gettid	sched_workqueue.cpp	/^pid_t gettid() {$/;"	f
+is_done	sched_boost.cpp	/^    bool is_done() const {$/;"	f	struct:Task
+is_done	sched_workqueue.cpp	/^    bool is_done() const {$/;"	f	struct:Task
+is_empty	sched_workqueue.cpp	/^    bool is_empty() {$/;"	f	class:Scheduler
+is_idle	sched_workqueue.cpp	/^    bool is_idle() {$/;"	f	class:Scheduler
+key	sched_workqueue.cpp	/^    uint64_t key;$/;"	m	struct:Task	file:
+main	sched_boost.cpp	/^int main() {$/;"	f
+main	sched_workqueue.cpp	/^int main() {$/;"	f
+master	sched_boost.cpp	/^void master(Scheduler& sched, int tid, int coro_count) {$/;"	f
+master	sched_workqueue.cpp	/^void master(Scheduler& sched, int tid, int coro_count) {$/;"	f
+mutex	sched_boost.cpp	/^    std::mutex mutex;$/;"	m	class:Scheduler	file:
+mutex	sched_workqueue.cpp	/^    std::mutex mutex;$/;"	m	class:Scheduler	file:
+noexcept	sched_boost.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
+noexcept	sched_workqueue.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
+num_thread	sched_workqueue.cpp	/^int num_thread;$/;"	v
+post_mycoroutines_to	sched_boost.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
+post_mycoroutines_to	sched_workqueue.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
+print_worker	sched_workqueue.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
+read_worker	sched_workqueue.cpp	/^void read_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
+resume	sched_boost.cpp	/^    void resume() {$/;"	f	struct:Task
+resume	sched_workqueue.cpp	/^    void resume() {$/;"	f	struct:Task
+schedule	sched_boost.cpp	/^    void schedule() {$/;"	f	class:Scheduler
+schedule	sched_workqueue.cpp	/^    void schedule() {$/;"	f	class:Scheduler
+schedulers	sched_boost.cpp	/^Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v
+schedulers	sched_workqueue.cpp	/^Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v
+set_type	sched_workqueue.cpp	/^    void set_type(int type){$/;"	f	struct:Task
+source	sched_boost.cpp	/^    CoroCall* source = nullptr;  \/\/ 또는 CoroYield* depending on role$/;"	m	struct:Task	file:
+source	sched_workqueue.cpp	/^    CoroCall* source = nullptr;  \/\/ 또는 CoroYield* depending on role$/;"	m	struct:Task	file:
+task_type	sched_workqueue.cpp	/^    int task_type;$/;"	m	struct:Task	file:
+thread_func	sched_boost.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
+thread_func	sched_workqueue.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
+thread_id	sched_boost.cpp	/^        : source(other.source), utask_id(other.utask_id), thread_id(other.thread_id) {$/;"	f	struct:Task
+thread_id	sched_boost.cpp	/^    int thread_id;$/;"	m	class:Scheduler	file:
+thread_id	sched_boost.cpp	/^    int thread_id;$/;"	m	struct:Task	file:
+thread_id	sched_workqueue.cpp	/^        : source(other.source), utask_id(other.utask_id), thread_id(other.thread_id) {$/;"	f	struct:Task
+thread_id	sched_workqueue.cpp	/^    int thread_id;$/;"	m	class:Scheduler	file:
+thread_id	sched_workqueue.cpp	/^    int thread_id;$/;"	m	struct:Task	file:
+utask_id	sched_boost.cpp	/^    int utask_id;$/;"	m	struct:Task	file:
+utask_id	sched_workqueue.cpp	/^    int utask_id;$/;"	m	struct:Task	file:
+value	sched_workqueue.cpp	/^    uint64_t value;$/;"	m	struct:Task	file:
+wait_list	sched_boost.cpp	/^    std::queue<Task> wait_list;$/;"	m	class:Scheduler	file:
+wait_list	sched_workqueue.cpp	/^    std::queue<Task> wait_list;$/;"	m	class:Scheduler	file:
+worker	sched_boost.cpp	/^void worker(Scheduler& sched, int tid, int coroid) {$/;"	f
+write_worker	sched_workqueue.cpp	/^void write_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
+~Task	sched_boost.cpp	/^    ~Task() {$/;"	f	struct:Task
+~Task	sched_workqueue.cpp	/^    ~Task() {$/;"	f	struct:Task
