@@ -138,19 +138,33 @@ public:
 
 //Sleep&& wakeup thread using Conditional Variable
 void sleep_thread(int tid){
-    sleeping_flags[tid] = true;
-    std::unique_lock<std::mutex> lock(cv_mutexes[tid]);
-    cvs[tid].wait(lock);
-    sleeping_flags[tid] = false;
+  std::unique_lock<std::mutex> lock(cv_mutexes[tid]);
+  sleeping_flags[tid] = true;
+  //wait until someone (other master coroutine) change my sleeping_flag
+  cvs[tid].wait(lock, [&]{ return !sleeping_flags[tid]; });
 }
 
-void wake_up_thread(int tid) {
-    if (sleeping_flags[tid]) {
-        cvs[tid].notify_one();
-    }
+void wake_up_thread(int tid){
+  { std::lock_guard<std::mutex> lk(cv_mutexes[tid]); sleeping_flags[tid] = false; }
+  cvs[tid].notify_one();
 }
+
 //When thread sleep
 int post_mycoroutines_to(int from_tid, int to_tid) {
+    int count = 0;
+    auto& to_sched = *schedulers[to_tid];
+    auto& from_sched = *schedulers[from_tid];
+    std::lock_guard<std::mutex> lock_to(to_sched.mutex);
+    
+    while (!from_sched.coroutine_queue.empty()) {
+        count++;
+        to_sched.wait_list.push(std::move(from_sched.coroutine_queue.front()));
+        from_sched.coroutine_queue.pop();
+    }
+    return count;
+}
+//When thread awake
+int post_coroutine_to_awake(int from_tid,int to_tid){
     int count = 0;
     auto& to_sched = *schedulers[to_tid];
     auto& from_sched = *schedulers[from_tid];
@@ -162,10 +176,6 @@ int post_mycoroutines_to(int from_tid, int to_tid) {
         from_sched.coroutine_queue.pop();
     }
     return count;
-}
-//When thread awake
-int post_coroutine_to_awake(int from_tid,int to_tid){
-
 }
 
 //Make worker coroutine and emplace @ WorkQueue
