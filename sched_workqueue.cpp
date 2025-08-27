@@ -17,6 +17,15 @@
 #include <unistd.h>
 #include <pthread.h>
 
+constexpr int MAX_Q 32 //Max Queue length
+constexpr long Q_A 0.3  //Queue Down threshold-> Core consolidation
+constexpr long Q_B 0.7  //Queue Up threshold -> Load Balancing
+constexpr int MAX_THREADS = 4;
+constexpr int SLO_THRESHOLD_MS=5;
+
+enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};
+//CoreState core_states[MAX_THREADS];
+
 using coro_t    = boost::coroutines::symmetric_coroutine<void>;
 using CoroCall = coro_t::call_type;   // 코루틴을 호출하거나 재개하는 객체(Caller) : 코루틴 객체를 가지고 있는 쪽
 using CoroYield = coro_t::yield_type; // 코루틴 내부에서 호출자에게 제어를 넘기는 객체(Callee)
@@ -25,9 +34,8 @@ pid_t gettid() {
     return syscall(SYS_gettid);
 }
 
-constexpr int MAX_THREADS = 4;
-constexpr int SLO_THRESHOLD_MS=5;
-bool detect_SLO_violation(int tid) {
+
+int detect_SLO_violation(int tid){
     // Placeholder: insert real latency measurement logic
     return rand() % 100 < 10; // 10% chance to violate
 }
@@ -39,7 +47,7 @@ std::mutex cv_mutexes[MAX_THREADS];
 std::atomic<bool> sleeping_flags[MAX_THREADS];
 
 struct Task {
-    CoroCall* source = nullptr;  // 또는 CoroYield* depending on role
+    CoroCall* source = nullptr; 
     int utask_id;
     int thread_id;
     int task_type;
@@ -89,8 +97,8 @@ struct Task {
 class Scheduler {
 public:
     int thread_id;
-    std::queue<Task> coroutine_queue; // 실행중 / 실행 예정인 coroutine이 대기하는 queue
-    std::queue<Task> wait_list;//thread(나포함,다른 thread포함)가 wait_list에서 Task를 가져와서 그걸 coroutine_queue에 넣는다.
+    std::queue<Task> work_queue; // Work Queue
+    std::queue<Task> wait_list;       // Wait list
     std::mutex mutex;
 
     Scheduler(int tid) : thread_id(tid) {
@@ -98,7 +106,7 @@ public:
     }
 
     void emplace(Task&& task) {
-        coroutine_queue.push(std::move(task));
+        work_queue.push(std::move(task));
     }
 
     void enqueue_to_wait_list(Task&& task) {
@@ -107,25 +115,28 @@ public:
     }
     bool is_idle() {
         std::lock_guard<std::mutex> lock(mutex);
-        return coroutine_queue.size() <= 3;
+        return work_queue.size() <= 3;
     }
     bool is_empty() {
         std::lock_guard<std::mutex> lock(mutex);
-        return coroutine_queue.empty() && wait_list.empty();
+        return work_queue.empty() && wait_list.empty();
     }
 
     void schedule() {
-        {
+       //1. Wait list -> Work Queue 
+       {
             std::lock_guard<std::mutex> lock(mutex);
             while (!wait_list.empty()) {
-                coroutine_queue.push(std::move(wait_list.front()));
+                work_queue.push(std::move(wait_list.front()));
                 wait_list.pop();
             }
         }
+	//2. Network Poll...
 
-        if (!coroutine_queue.empty()) {
-            Task task = std::move(coroutine_queue.front());
-            coroutine_queue.pop();
+	//3. Resume Task
+        if (!work_queue.empty()) {
+            Task task = std::move(work_queue.front());
+            work_queue.pop();
 
             task.resume();
 
@@ -188,30 +199,13 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
     sched.emplace(Task(source, tid, coroid));
 }
 
-void read_worker(Scheduler& sched, int tid, int coroid) {
-    auto* source = new CoroCall([=](CoroYield& yield) {
-        std::cout << "[Coroutine " << tid << "-" << coroid << "] started on thread " << gettid() << "\n";
-        yield();
-        std::cout << "[Coroutine " << tid << "-" << coroid << "] ended on thread " << gettid() << "\n";
-    });
-    sched.emplace(Task(source, tid, coroid));
-}
-
-void write_worker(Scheduler& sched, int tid, int coroid) {
-    auto* source = new CoroCall([=](CoroYield& yield) {
-        std::cout << "[Coroutine " << tid << "-" << coroid << "] started on thread " << gettid() << "\n";
-        yield();
-        std::cout << "[Coroutine " << tid << "-" << coroid << "] ended on thread " << gettid() << "\n";
-    });
-    sched.emplace(Task(source, tid, coroid));
-}
-
 int num_thread;
 bool try_offload_coroutine(Scheduler& sched, int tid){
     //power of two 기반, 랜덤하게 2개를 선택해서 그중 더 적은 부분에 넣으면 나름 equal하게 load balancing 이 가능함.
     constexpr int MAX_ATTEMPTS = 5;//시도 횟수 5회시도
     int attempts = 0;
     int target;
+    //power of two
     while (attempts++ < MAX_ATTEMPTS) {
         int i = rand() % MAX_THREADS;
         int j = rand() % MAX_THREADS;
@@ -297,8 +291,8 @@ void thread_func(int tid, int coro_count) {
 }
 
 int main() {
-    const int coro_count = 10;
-    num_thread=4;
+    const int coro_count = 100;
+    num_thread=2;
     std::thread thread_list[num_thread];
     for(int i=0;i<num_thread;i++){
 	    thread_list[i] = std::thread(thread_func, i, coro_count);
