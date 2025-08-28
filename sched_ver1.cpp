@@ -1,7 +1,6 @@
 // sched_workqueue.cpp
 // Build:
-// g++ -std=gnu++17 -O2 sched_workqueue.cpp -o sched_workqueue \
-//     -lboost_coroutine -lboost_context -lboost_system -lpthread
+// g++ -std=gnu++17 -O2 sched_ver1.cpp -o sched_ver1 -lboost_coroutine -lboost_context -lboost_system -lpthread
 
 #include <boost/coroutine/symmetric_coroutine.hpp>
 #include <iostream>
@@ -17,6 +16,9 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <pthread.h>
+
+#include "rdma_common.h"
+#include "rdma_verb.h"
 
 using namespace std::chrono;
 
@@ -166,6 +168,14 @@ public:
     }
 
     // 2) (여기서 RDMA CQ poll 처리 가능) // TODO: poll_network()
+    int next_id=poll_coroutine(thread_id);
+    if(next_id<0){
+        continue;
+    }
+    else{
+    //printf("Master :polled Job for coro_id %d \n",next_id);
+    yield(worker[next_id]);
+    }
 
     // 3) RUN_BATCH_MAX 만큼 연속 실행(라운드로빈)
     int ran = 0;
@@ -363,8 +373,8 @@ int main() {
   // 슬립 플래그 초기화
   for (int i = 0; i < MAX_THREADS; ++i) sleeping_flags[i].store(false);
 
-  const int coro_count = 32;
-  num_thread = 2; // 데모: 2개 스레드
+  const int coro_count = 16;
+  num_thread = 4; // 데모: 2개 스레드
 
   std::vector<std::thread> ths;
   ths.reserve(num_thread);

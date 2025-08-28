@@ -1,3 +1,6 @@
+#include <deque>
+#include <random>
+
 struct Request {
     uint64_t timestamp;
     int type; // read/write
