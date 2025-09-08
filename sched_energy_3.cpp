@@ -24,6 +24,8 @@ constexpr double Q_A   = 0.3;    // Queue Down threshold-> Core consolidation
 constexpr double Q_B   = 0.7;    // Queue Up threshold -> Load Balancing
 constexpr int   MAX_THREADS = 4;
 constexpr int   SLO_THRESHOLD_MS=5;
+//실험 종료를 알리는 전역변수
+std::atomic<bool> g_stop{false};
 
 enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};
 enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};
@@ -204,7 +206,7 @@ public:
 
         task.resume();
 
-        if (!task.is_done()) {
+        if (!task.is_done() && !g_stop.load()) {
             emplace(std::move(task));
         }
     }
@@ -214,8 +216,6 @@ public:
 // Sleep / Wake helpers
 // =====================
 
-//실험 종료를 알리는 전역변수
-std::atomic<bool> g_stop{false};
 
 void sleep_thread(int tid){
   std::unique_lock<std::mutex> lock(cv_mutexes[tid]);
@@ -414,6 +414,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
         while(sched.rx_queue.size()!=0){
         	sched.schedule();
         }
+        break;
     }
     
     printf("Master ended\n");
