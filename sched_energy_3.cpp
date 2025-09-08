@@ -148,7 +148,7 @@ public:
     int thread_id;
     std::queue<Task> work_queue;     // Work Queue (코루틴 스케줄)
     std::queue<Task> wait_list;      // Wait list (코루틴 대기)
-    std::mutex mutex;
+    std::mutex mutex;		    //Mutex for Wait list
 
     // 스레드 내부 요청 큐 (외부 g_rx에서 옮겨온 Request 소비)
     MPMCQueue rx_queue;
@@ -158,7 +158,7 @@ public:
     }
 
     void emplace(Task&& task) {
-        std::lock_guard<std::mutex> lock(mutex);
+        //std::lock_guard<std::mutex> lock(mutex);
         work_queue.push(std::move(task));
     }
 
@@ -168,8 +168,8 @@ public:
     }
 
     bool is_idle() {
-        std::lock_guard<std::mutex> lock(mutex);
-        // 'idle' 판정 기준은 필요에 맞게 조정
+        //std::lock_guard<std::mutex> lock(mutex);
+        // TODO :: 'idle' 판정 기준은 필요에 맞게 조정
         return work_queue.size() <= 3;
     }
 
@@ -182,12 +182,12 @@ public:
     void schedule() {
         // 1) Wait list -> Work Queue 
         {
-           if(wait_list.empty()){ 
-           std::lock_guard<std::mutex> lock(mutex);
-            while (!wait_list.empty()) {
-                work_queue.push(std::move(wait_list.front()));
-                wait_list.pop();
-            }
+           if(!wait_list.empty()){ 
+              std::lock_guard<std::mutex> lock(mutex);
+              while (!wait_list.empty()) {
+                   work_queue.push(std::move(wait_list.front()));
+                   wait_list.pop();
+              }
 	   }
         }
 
@@ -378,7 +378,6 @@ void master(Scheduler& sched, int tid, int coro_count) {
     int sched_count = 0;
     //while (true) {
     while(!g_stop.load()){//실험을 위해서 g_stop 계속 확인
-        printf("master %d\n",tid);
         // 1) 외부 수신 큐(g_rx) → 스레드 내부 rx_queue로 펌프
         pump_external_requests_into(sched, /*burst*/32);
 
@@ -412,19 +411,11 @@ void master(Scheduler& sched, int tid, int coro_count) {
     // (실험용) 외부 큐 빨아오고, 로컬 큐가 빌 때까지 스케줄
     for (;;) {
         pump_external_requests_into(sched, 1024);
-        bool any = false;
-        { std::lock_guard<std::mutex> lock(sched.mutex);
-          any = !sched.work_queue.empty() || !sched.wait_list.empty(); }
-        if (!any) break;
-        //test
-        if(!sched.work_queue.empty()){
-	printf("workQ not empty\n");
-	}
-        if(!sched.wait_list.empty()){
-	printf("wait_list not empty\n");
-	}
-        sched.schedule();
+        while(sched.rx_queue.size()!=0){
+        	sched.schedule();
+        }
     }
+    
     printf("Master ended\n");
 }
 
