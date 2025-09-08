@@ -46,10 +46,6 @@ void bind_cpu(int cpu_num){
 }
 
 
-int detect_SLO_violation(int /*tid*/){
-    // Placeholder: insert real latency measurement logic
-    return rand() % 100 < 10; // 10% chance to violate
-}
 
 class Scheduler;
 Scheduler* schedulers[MAX_THREADS] = {nullptr};
@@ -89,7 +85,7 @@ public:
     cv_.notify_one();
   }
   size_t size() const {
-    std::lock_guard<std::mutex> lk(m_);
+    //std::lock_guard<std::mutex> lk(m_);
     return q_.size();
   }
 } g_rx;
@@ -159,6 +155,18 @@ public:
         schedulers[tid] = this;
     }
 
+    bool detect_SLO_violation(){
+    	if(rx_queue.size() > Q_B * MAX_Q  ) {
+    		return true;
+	}
+	else return false; 
+    }
+    bool is_idle() {
+    	if(rx_queue.size() < Q_A * MAX_Q  ) {
+    		return true;
+	}
+	else return false; 
+    }
     void emplace(Task&& task) {
         //std::lock_guard<std::mutex> lock(mutex);
         work_queue.push(std::move(task));
@@ -169,11 +177,6 @@ public:
         wait_list.push(std::move(task));
     }
 
-    bool is_idle() {
-        //std::lock_guard<std::mutex> lock(mutex);
-        // TODO :: 'idle' 판정 기준은 필요에 맞게 조정
-        return work_queue.size() <= 3;
-    }
 
     bool is_empty() {
         std::lock_guard<std::mutex> lock(mutex);
@@ -388,15 +391,16 @@ void master(Scheduler& sched, int tid, int coro_count) {
         // 3) core consolidation : 매 5회마다 스케줄링
         if (++sched_count > 5) {
             sched_count = 0;
-            // 3-1) 저부하면 코어 정리 시도
+            // 3-1) 저부하면 코어 정리 시도 (core 0는 절대 안꺼짐)
             if (sched.is_idle() && tid != 0) {
+                printf("Core[%d] idle\n",tid);
                 if (try_offload_coroutine(sched, tid)) {
                     if(!g_stop.load()) sleep_thread(tid); // 다른 곳으로 코루틴 넘기고 잠자기
                 }
             }
         
             // 3-2) SLO 위반 시 잠자는 스레드 깨워서 일부 코루틴 이관
-            if (!g_stop.load() && detect_SLO_violation(tid)) {
+            if (!g_stop.load() && sched.detect_SLO_violation(tid)) {
                 for (int i=0;i<MAX_THREADS;i++){
                     if (i!=tid && sleeping_flags[i]) {
                         post_coroutine_to_awake(tid,i);
@@ -431,8 +435,8 @@ void thread_func(int tid, int coro_count) {
 void timed_producer(int num_thread,int qps,int durationSec);
 
 int main() {
-    const int coro_count   = 4;      // 워커 코루틴 수
-    const int num_thread   = 2;      // 워커 스레드 수
+    const int coro_count   = 10;      // 워커 코루틴 수
+    const int num_thread   = 4;      // 워커 스레드 수
     const int durationSec  = 30;     // 실험 시간 (초)
     const int qps          = 5000;  // 초당 요청 개수
 
