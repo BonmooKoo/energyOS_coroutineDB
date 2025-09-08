@@ -7,6 +7,7 @@ g++ -std=gnu++17 -O2 sched_energy_experiment.cpp -o sched_energy \
   -Wl,-rpath,/opt/boost-1.60/lib \
   -lboost_coroutine -lboost_context -lboost_system -lpthread
 taskset -c 0-3 ./sched_energy --threads 4 --coros 16 --rps 1000 --duration 60 --service-us 200
+taskset -c 0-1 ./sched_energy --threads 1 --coros 64 --rps 1000 --duration 60 --service-us 200
 */
 //
 // Purpose:

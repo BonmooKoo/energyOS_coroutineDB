@@ -42,7 +42,7 @@ echo "[*] 벤치마크 실행 시작 $(date +%s)"
 #./mcperf -s localhost -t 10
 #./db_bench --benchmarks fillrandom --db=./tmp/ --duration=30
 "$@"
-echo "[*] 벤치마크 종료됨"
+echo "[*] 벤치마크 종료됨 $(date +%s)"
 
 sleep 10
 # 4. 측정 프로세스 종료

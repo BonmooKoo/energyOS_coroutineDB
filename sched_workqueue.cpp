@@ -174,7 +174,7 @@ int post_mycoroutines_to(int from_tid, int to_tid) {
     }
     return count;
 }
-//When thread awake
+//Thread 깨우기전에 workQ에 값들 넣어줌.
 int post_coroutine_to_awake(int from_tid,int to_tid){
     int count = 0;
     auto& to_sched = *schedulers[to_tid];
