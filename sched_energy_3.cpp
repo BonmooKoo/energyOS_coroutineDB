@@ -210,16 +210,16 @@ public:
 
     // 한 번에 wait_list -> work_queue로 옮기고, 한 개 코루틴을 실행
     void schedule() {
+        printf("[%d] scheduling\n",thread_id);
         // 1) Wait list -> Work Queue 
-        {
-           if(!wait_list.empty()){ 
-              std::lock_guard<std::mutex> lock(mutex);
-              while (!wait_list.empty()) {
-                   work_queue.push(std::move(wait_list.front()));
-                   wait_list.pop();
-              }
-	   }
-        }
+        if(!wait_list.empty()){ 
+           printf("[%d]pulling wait_list\n",thread_id);
+           std::lock_guard<std::mutex> lock(mutex);
+           while (!wait_list.empty()) {
+                work_queue.push(std::move(wait_list.front()));
+                wait_list.pop();
+           }
+	}
 
         // 2) (네트워크 폴링 자리에 필요 시 추가)
 
@@ -278,6 +278,7 @@ int post_mycoroutines_to(int from_tid, int to_tid) {
         to_sched.wait_list.push(std::move(from_sched.work_queue.front()));
         from_sched.work_queue.pop();
     }
+    printf("[%d]post_coroutineto<%d>\n",from_tid,to_tid);
     return count;
 }
 
@@ -375,7 +376,8 @@ int core_consolidation(Scheduler& sched, int tid){
             break;// target = CONSOLIDATION
         }
     }
-    
+    //temp
+    target = 0; 
     if (target < 0) {
     printf("[%d]failed\n",tid); 
        // Consolidation Failed
@@ -392,11 +394,6 @@ int core_consolidation(Scheduler& sched, int tid){
     schedulers[target]->rx_queue.push_bulk(tmp);
     //4)change target state
     core_state[target]=ACTIVE; 
-    //5) sleep
-    printf("[%d] sleep\n",tid);
-    core_state[tid]=SLEEPING;
-    sleep_thread(tid);
-
     return target;
 }
 
@@ -471,11 +468,12 @@ void master(Scheduler& sched, int tid, int coro_count) {
             // 3-1) 저부하면 코어 정리 시도 (core 0는 절대 안꺼짐)
             if (sched.is_idle() && tid != 0) {
                 printf("Core[%d] idle\n",tid);
-                if (core_consolidation(sched, tid)) {
-                    if(!g_stop.load()) sleep_thread(tid); // 다른 곳으로 코루틴 넘기고 잠자기
+                if (core_consolidation(sched, tid)!=-1) {
+    			printf("[%d] sleep\n",tid);
+    			core_state[tid]=SLEEPING;
+                	if(!g_stop.load()) sleep_thread(tid); // 다른 곳으로 코루틴 넘기고 잠자기
                 }
             }
-        
             // 3-2) SLO 위반 시 잠자는 스레드 깨워서 일부 코루틴 이관
             else if (!g_stop.load() && sched.detect_SLO_violation()) {
                 for (int i=0;i<MAX_THREADS;i++){
