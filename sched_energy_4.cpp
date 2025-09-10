@@ -1,7 +1,7 @@
 // Boost coroutine version of the original cpp coroutine example
-
+//export LANG=ko_KR.UTF-8
 // Compile with: 
-// g++ -std=c++17 sched_energy_3.cpp -o sched_energy_3 -I./ -I/usr/local/include   -L/usr/local/lib -Wl,-rpath,/usr/local/lib   -lboost_coroutine -lboost_context -lboost_system   -libverbs -lmemcached -lpthread
+// g++ -std=c++17 sched_energy_4.cpp -o sched_energy_4 -I./ -I/usr/local/include   -L/usr/local/lib -Wl,-rpath,/usr/local/lib   -lboost_coroutine -lboost_context -lboost_system   -libverbs -lmemcached -lpthread
 
 #include <boost/coroutine/symmetric_coroutine.hpp>
 #include <iostream>
@@ -27,7 +27,7 @@ constexpr int   SLO_THRESHOLD_MS=5;
 //실험 종료를 알리는 전역변수
 std::atomic<bool> g_stop{false};
 
-enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING};
+enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};
 enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};
 
 using coro_t    = boost::coroutines::symmetric_coroutine<void>;
@@ -89,7 +89,6 @@ public:
     //std::lock_guard<std::mutex> lk(m_);
     return q_.size();
   }
-  //한번만 잠가서
   void steal_all(std::deque<Request>& out) {
     std::lock_guard<std::mutex> lk(m_);
     while (!q_.empty()) {
@@ -97,8 +96,6 @@ public:
       q_.pop_front();
     }
   }
-
-  // to.push_bulk(in): to를 한 번만 잠가서 in을 전부 q_로 이동
   void push_bulk(std::deque<Request>& in) {
     if (in.empty()) return;
     {
@@ -168,16 +165,19 @@ struct Task {
 class Scheduler {
 public:
     int thread_id;
+    //Master 전용
+    int work_q_size;
     std::queue<Task> work_queue;     // Work Queue (코루틴 스케줄)
-    std::queue<Task> wait_list;      // Wait list (코루틴 대기)
+    MPMCQueue rx_queue;
+    
+    //공용
+    MQMCQueue wait_list;            //다른 Thread에서 실행중인 request를 저장.
     std::mutex mutex;		    //Mutex for Wait list
 
     // 스레드 내부 요청 큐 (외부 g_rx에서 옮겨온 Request 소비)
-    MPMCQueue rx_queue;
-
     Scheduler(int tid) : thread_id(tid) {
         schedulers[tid] = this;
-        core_state[tid] = ACTIVE;
+        core_state[tid] = STARTED;
     }
 
     bool detect_SLO_violation(){
@@ -210,30 +210,35 @@ public:
 
     // 한 번에 wait_list -> work_queue로 옮기고, 한 개 코루틴을 실행
     void schedule() {
-        printf("[%d] scheduling\n",thread_id);
         // 1) Wait list -> Work Queue 
         if(!wait_list.empty()){ 
            printf("[%d]pulling wait_list\n",thread_id);
            std::lock_guard<std::mutex> lock(mutex);
            while (!wait_list.empty()) {
-                work_queue.push(std::move(wait_list.front()));
-                wait_list.pop();
+                //work_queue.push(std::move(wait_list.front()));
+                emplace(std::move(wait_list.front()));
+                printf("[%d]Enqueue<%d>\n",thread_id,wait_list.front().utask_id);
+		wait_list.pop();
            }
+           printf("[%d]pull fin <%d:%d>\n",thread_id,work_queue.size(),wait_list.size());
 	}
 
         // 2) (네트워크 폴링 자리에 필요 시 추가)
+        //	우선 Network를 Polling 해보고, 없으면 그때 다음 request 처리.
 
         // 3) Resume one coroutine
         Task task;
-        {
-            if (work_queue.empty()) return;
+        if (!work_queue.empty()){
             task = std::move(work_queue.front());
             work_queue.pop();
         }
-
+        //printf("[%d]Start task<%d>\n",thread_id,task.utask_id);
         task.resume();
-
+        //printf("[%d]End task<%d>\n",thread_id,task.utask_id);
+         
+        // 4)task가 실행되고 
         if (!task.is_done() && !g_stop.load()) {
+            printf("[%d]Enqueue<%d>\n",thread_id,task.utask_id);
             emplace(std::move(task));
         }
     }
@@ -277,7 +282,7 @@ int post_mycoroutines_to(int from_tid, int to_tid) {
         to_sched.wait_list.push(std::move(from_sched.work_queue.front()));
         from_sched.work_queue.pop();
     }
-    printf("[%d]post_coroutineto<%d>\n",from_tid,to_tid);
+    printf("[%d:%d]post_coroutineto<%d:%d:%d>\n",from_tid,from_sched.work_queue.size(),to_tid,to_sched.work_queue.size(),to_sched.wait_list.size());
     return count;
 }
 
@@ -292,20 +297,12 @@ int post_coroutine_to_awake(int from_tid, int to_tid){
     // from의 절반 정도만 넘기는 예시 (필요 시 정책 조정)
     {
         std::queue<Task> tmp;
-        int total = 0;
-        while (!from_sched.work_queue.empty()) {
-            tmp.push(std::move(from_sched.work_queue.front()));
-            from_sched.work_queue.pop();
-            total++;
-        }
+        int total = from_sched.work_queue.size();
         half = total / 2;
-        for (int i=0; i<total; ++i) {
-            Task t = std::move(tmp.front()); 
-            tmp.pop();
-            if (i < half) 
-		to_sched.wait_list.push(std::move(t));
-            else          
-		from_sched.wait_list.push(std::move(t));
+        for (int i=0; i<half; ++i) {
+            Task t = std::move(from_sched.work_queue.front()); 
+            from_sched.work_queue.pop();
+            to_sched.wait_list.push(std::move(t));
         }
     }
     return half;
@@ -426,6 +423,7 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
             // 요청이 없으면 양보
             if (!sched.rx_queue.try_pop(r)) {
                 // 스케줄러(Master)에 제어 양보
+                //printf("[coro:%d] No Data!\n",coroid);
                 yield();
                 continue;
             }
@@ -474,7 +472,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
                 }
             }
             // 3-2) SLO 위반 시 잠자는 스레드 깨워서 일부 코루틴 이관
-            else if (!g_stop.load() && sched.detect_SLO_violation()) {
+            /*else if (!g_stop.load() && sched.detect_SLO_violation()) {
                 for (int i=0;i<MAX_THREADS;i++){
                     if (i!=tid && sleeping_flags[i]) {
                         post_coroutine_to_awake(tid,i);
@@ -482,7 +480,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
                         break;
                     }
                 }
-            }
+            }*/
 	}//end if(++sched_count >3)
     }//end while(!g_stop.load())
    
@@ -512,8 +510,8 @@ void timed_producer(int num_thread,int qps,int durationSec);
 int main() {
     const int coro_count   = 10;      // 워커 코루틴 수
     const int num_thread   = 2;      // 워커 스레드 수
-    const int durationSec  = 30;     // 실험 시간 (초)
-    const int qps          = 5000;  // 초당 요청 개수
+    const int durationSec  = 10;     // 실험 시간 (초)
+    const int qps          = 50000;  // 초당 요청 개수
 
     // sleeping_flags 초기화
     for (int i=0;i<MAX_THREADS;i++) sleeping_flags[i] = false;

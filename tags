@@ -4,17 +4,17 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-ACTIVE	sched_energy_3.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
+ACTIVE	sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};$/;"	e	enum:CoreState	file:
 ACTIVE	sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	e	enum:CoreState	file:
 ACTIVE	sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
 ADDR	rdma_common.h	24;"	d
 ALLOCSIZE	rdma_common.h	20;"	d
 ALLOCSIZE	rdma_verb.h	16;"	d
 CACHELINE_SIZE	mpmc_ring.hpp	12;"	d
-CONSOLIDATING	sched_energy_3.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
+CONSOLIDATING	sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};$/;"	e	enum:CoreState	file:
 CONSOLIDATING	sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	e	enum:CoreState	file:
 CONSOLIDATING	sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
-CoreState	sched_energy_3.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	g	file:
+CoreState	sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};$/;"	g	file:
 CoreState	sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	g	file:
 CoreState	sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	g	file:
 GID	rdma_common.h	26;"	d
@@ -38,6 +38,11 @@ MPMCQueue	sched_energy_experiment.cpp	/^class MPMCQueue {$/;"	c	file:
 MPMCRing	mpmc_ring.hpp	/^  explicit MPMCRing(size_t capacity) {$/;"	f	class:MPMCRing
 MPMCRing	mpmc_ring.hpp	/^class MPMCRing {$/;"	c
 Next	zipf.cpp	/^size_t ZipfGenerator::Next() {$/;"	f	class:ZipfGenerator
+OP_DELETE	sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_GET	sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_PUT	sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_RANGE	sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_UPDATE	sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
 QP_NUM	rdma_common.h	23;"	d
 Q_A	sched_energy_3.cpp	/^constexpr double Q_A   = 0.3;    \/\/ Queue Down threshold-> Core consolidation$/;"	v
 Q_B	sched_energy_3.cpp	/^constexpr double Q_B   = 0.7;    \/\/ Queue Up threshold -> Load Balancing$/;"	v
@@ -51,11 +56,12 @@ Request	request.h	/^struct Request {$/;"	s
 Request	sched_energy_2.cpp	/^struct Request { uint64_t id; uint64_t ts_ns; };$/;"	s	file:
 Request	sched_energy_3.cpp	/^struct Request {$/;"	s	file:
 Request	sched_energy_experiment.cpp	/^struct Request { uint64_t id; uint64_t ts_ns; };$/;"	s	file:
+RequestType	sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	g	file:
 SERVER	rdma_verb.cpp	8;"	d	file:
 SERVER_NUM_KEY	keeper.cpp	/^const char *Keeper::SERVER_NUM_KEY = "serverNum";$/;"	m	class:Keeper	file:
 SERVER_NUM_KEY	keeper.h	/^  static const char *SERVER_NUM_KEY;$/;"	m	class:Keeper
 SIZEOFNODE	rdma_common.h	21;"	d
-SLEEPING	sched_energy_3.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
+SLEEPING	sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};$/;"	e	enum:CoreState	file:
 SLEEPING	sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	e	enum:CoreState	file:
 SLEEPING	sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
 SLEEP_HYSTERESIS_LOOPS	sched_ver1.cpp	/^constexpr int   SLEEP_HYSTERESIS_LOOPS = 10000; \/\/ 슬립 전 최소 유휴 루프 수$/;"	v
@@ -64,6 +70,7 @@ SLO_THRESHOLD_MS	sched_energy_3.cpp	/^constexpr int   SLO_THRESHOLD_MS=5;$/;"	v
 SLO_THRESHOLD_MS	sched_ver1.cpp	/^constexpr int   SLO_THRESHOLD_MS       = 5;   \/\/ demo stub에서만 사용$/;"	v
 SLO_THRESHOLD_MS	sched_workqueue.cpp	/^constexpr int SLO_THRESHOLD_MS=5;$/;"	v
 SPIN_YIELD_ROUNDS	sched_ver1.cpp	/^constexpr int   SPIN_YIELD_ROUNDS      = 200; \/\/ 바쁜-폴링 억제: 초반 스핀\/양보 횟수$/;"	v
+STARTED	sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};$/;"	e	enum:CoreState	file:
 Scheduler	sched_boost.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
 Scheduler	sched_boost.cpp	/^class Scheduler {$/;"	c	file:
 Scheduler	sched_energy_3.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
@@ -125,6 +132,8 @@ completed	rdma_client.cpp	/^std::vector<std::atomic<bool>> completed;$/;"	v
 completion_queue	rdma_server.cpp	/^struct ibv_cq* completion_queue;$/;"	v	typeref:struct:ibv_cq
 connectMemcached	keeper.cpp	/^bool Keeper::connectMemcached() {$/;"	f	class:Keeper
 contexts	rdma_verb.cpp	/^struct RdmaContext contexts[MAXTHREAD];$/;"	v	typeref:struct:RdmaContext
+core_consolidation	sched_energy_3.cpp	/^int core_consolidation(Scheduler& sched, int tid){$/;"	f
+core_state	sched_energy_3.cpp	/^std::atomic<CoreState> core_state[MAX_THREADS];$/;"	v
 coro_master	rdma_coroutine.cpp	/^static void coro_master(CoroYield &yield,$/;"	f	file:
 coro_worker	rdma_coroutine.cpp	/^static void coro_worker(CoroYield &yield,$/;"	f	file:
 coros	sched_energy_2.cpp	/^  int coros;$/;"	m	struct:ThreadCtx	file:
@@ -152,7 +161,7 @@ data1	rdma_common.h	/^    uint64_t data1;$/;"	m	struct:RDMA_Data
 data2	rdma_common.h	/^    uint64_t data2;$/;"	m	struct:RDMA_Data
 data3	rdma_common.h	/^    char data3[16];$/;"	m	struct:RDMA_Data
 destroy_Queue	rdma_common.cpp	/^bool destroy_Queue(struct ibv_qp* qp,struct ibv_cq* cq){$/;"	f
-detect_SLO_violation	sched_energy_3.cpp	/^int detect_SLO_violation(int \/*tid*\/){$/;"	f
+detect_SLO_violation	sched_energy_3.cpp	/^    bool detect_SLO_violation(){$/;"	f	class:Scheduler
 detect_SLO_violation	sched_ver1.cpp	/^bool detect_SLO_violation(int \/*tid*\/) {$/;"	f
 detect_SLO_violation	sched_workqueue.cpp	/^int detect_SLO_violation(int tid){$/;"	f
 devIndex	rdma_common.h	/^  uint8_t devIndex;$/;"	m	struct:RdmaContext
@@ -213,6 +222,7 @@ key	request.h	/^    uint64_t key;$/;"	m	struct:Request
 key	sched_ver1.cpp	/^  uint64_t key = 0;$/;"	m	struct:Task	file:
 key	sched_workqueue.cpp	/^    uint64_t key;$/;"	m	struct:Task	file:
 lid	rdma_common.h	/^  uint16_t lid;$/;"	m	struct:RdmaContext
+load_balancing	sched_energy_3.cpp	/^int load_balancing(Scheduler& sched, int tid){$/;"	f
 m_	sched_energy_2.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
 m_	sched_energy_3.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
 m_	sched_energy_experiment.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
@@ -242,7 +252,7 @@ memc	keeper.h	/^  memcached_st *memc;$/;"	m	class:Keeper
 move_waitlist_half	sched_ver1.cpp	/^int move_waitlist_half(int from_tid, int to_tid) {$/;"	f
 move_waitlist_some	sched_ver1.cpp	/^int move_waitlist_some(int from_tid, int to_tid, size_t want) {$/;"	f
 mutex	sched_boost.cpp	/^    std::mutex mutex;$/;"	m	class:Scheduler	file:
-mutex	sched_energy_3.cpp	/^    std::mutex mutex;$/;"	m	class:Scheduler	file:
+mutex	sched_energy_3.cpp	/^    std::mutex mutex;		    \/\/Mutex for Wait list$/;"	m	class:Scheduler	file:
 mutex	sched_ver1.cpp	/^  std::mutex       mutex;$/;"	m	class:Scheduler	file:
 mutex	sched_workqueue.cpp	/^    std::mutex mutex;$/;"	m	class:Scheduler	file:
 myIP	keeper.h	/^  std::string myIP;$/;"	m	class:Keeper
@@ -253,11 +263,11 @@ noexcept	sched_boost.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	fil
 noexcept	sched_energy_3.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
 noexcept	sched_ver1.cpp	/^  Task(Task&& other) noexcept$/;"	m	struct:Task	file:
 noexcept	sched_workqueue.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
-num_thread	sched_energy_3.cpp	/^int num_thread = 2;$/;"	v
 num_thread	sched_ver1.cpp	/^static int num_thread = 2;$/;"	v	file:
 num_thread	sched_workqueue.cpp	/^int num_thread;$/;"	v
 padd	rdma_verb.h	/^    char padd[4];$/;"	m	struct:serverINFO
 pd	rdma_common.h	/^  ibv_pd *pd;$/;"	m	struct:RdmaContext
+pick_active_random	sched_energy_3.cpp	/^int pick_active_random(int self, int also_exclude = -1) {$/;"	f
 pin_to_cpu	sched_energy_2.cpp	/^static inline void pin_to_cpu(int cpu){$/;"	f	file:
 pin_to_cpu	sched_energy_experiment.cpp	/^void pin_to_cpu(int cpu){$/;"	f
 pollOnce	rdma_verb.cpp	/^int pollOnce(ibv_cq *cq, int pollNumber, struct ibv_wc *wc) {$/;"	f
@@ -270,6 +280,7 @@ post_coroutine_to_awake	sched_workqueue.cpp	/^int post_coroutine_to_awake(int fr
 post_mycoroutines_to	sched_boost.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
 post_mycoroutines_to	sched_energy_3.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
 post_mycoroutines_to	sched_workqueue.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
+power_of_two_choices	sched_energy_3.cpp	/^int power_of_two_choices(int self) {$/;"	f
 print_worker	sched_energy_3.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
 print_worker	sched_workqueue.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
 process_request_on_worker	sched_energy_3.cpp	/^static void process_request_on_worker(const Request& r, int tid, int coroid) {$/;"	f	file:
@@ -279,6 +290,7 @@ pump_external_requests_into	sched_energy_3.cpp	/^static inline void pump_externa
 push	sched_energy_2.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
 push	sched_energy_3.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
 push	sched_energy_experiment.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
+push_bulk	sched_energy_3.cpp	/^  void push_bulk(std::deque<Request>& in) {$/;"	f	class:MPMCQueue
 q_	sched_energy_2.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
 q_	sched_energy_3.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
 q_	sched_energy_experiment.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
@@ -307,6 +319,7 @@ resume	sched_workqueue.cpp	/^    void resume() {$/;"	f	struct:Task
 rkey	rdma_verb.h	/^    uint32_t rkey;$/;"	m	struct:serverINFO
 run_coroutine	rdma_coroutine.cpp	/^void run_coroutine(int tid,$/;"	f
 rx_queue	sched_energy_3.cpp	/^    MPMCQueue rx_queue;$/;"	m	class:Scheduler	file:
+sched_load	sched_energy_3.cpp	/^int sched_load(int c){$/;"	f
 schedule	sched_boost.cpp	/^    void schedule() {$/;"	f	class:Scheduler
 schedule	sched_energy_3.cpp	/^    void schedule() {$/;"	f	class:Scheduler
 schedule	sched_workqueue.cpp	/^    void schedule() {$/;"	f	class:Scheduler
@@ -344,6 +357,8 @@ source	sched_ver1.cpp	/^  CoroCall* source = nullptr;$/;"	m	struct:Task	file:
 source	sched_workqueue.cpp	/^    CoroCall* source = nullptr; $/;"	m	struct:Task	file:
 src	rdma_verb.cpp	/^char* src[MAXTHREAD];$/;"	v
 start_time	sched_energy_3.cpp	/^    uint64_t start_time;$/;"	m	struct:Request	file:
+state_active_to_consol	sched_energy_3.cpp	/^bool state_active_to_consol(int tid){$/;"	f
+steal_all	sched_energy_3.cpp	/^  void steal_all(std::deque<Request>& out) {$/;"	f	class:MPMCQueue
 task_type	sched_ver1.cpp	/^  int task_type = 0;$/;"	m	struct:Task	file:
 task_type	sched_workqueue.cpp	/^    int task_type;$/;"	m	struct:Task	file:
 test_read	rdma_client.cpp	/^test_read (int id)$/;"	f
@@ -367,10 +382,10 @@ thread_worker	rdma_client.cpp	/^void thread_worker(int thread_id, int worker_num
 thread_worker	sched_energy_2.cpp	/^void thread_worker(ThreadWorkerCfg cfg){$/;"	f
 threadcount	rdma_client.cpp	/^int threadcount;$/;"	v
 tid	sched_energy_experiment.cpp	/^  int tid;$/;"	m	struct:ThreadCtx	file:
+timed_producer	sched_energy_3.cpp	/^void timed_producer(int num_thread, int qps, int durationSec) {$/;"	f
 timestamp	request.h	/^    uint64_t timestamp;$/;"	m	struct:Request
 tl_did_work	sched_energy_2.cpp	/^static thread_local bool tl_did_work = false;$/;"	v	file:
 trim	keeper.cpp	/^std::string trim(const std::string &s) {$/;"	f
-try_offload_coroutine	sched_energy_3.cpp	/^bool try_offload_coroutine(Scheduler& sched, int tid){$/;"	f
 try_offload_coroutine	sched_ver1.cpp	/^bool try_offload_coroutine(Scheduler& sched, int tid) {$/;"	f
 try_offload_coroutine	sched_workqueue.cpp	/^bool try_offload_coroutine(Scheduler& sched, int tid){$/;"	f
 try_pop	mpmc_ring.hpp	/^  bool try_pop(T& out) {$/;"	f	class:MPMCRing
@@ -397,6 +412,7 @@ wait_list	sched_boost.cpp	/^    std::queue<Task> wait_list;$/;"	m	class:Schedule
 wait_list	sched_energy_3.cpp	/^    std::queue<Task> wait_list;      \/\/ Wait list (코루틴 대기)$/;"	m	class:Scheduler	file:
 wait_list	sched_ver1.cpp	/^  std::queue<Task> wait_list;$/;"	m	class:Scheduler	file:
 wait_list	sched_workqueue.cpp	/^    std::queue<Task> wait_list;       \/\/ Wait list$/;"	m	class:Scheduler	file:
+wake_all_threads	sched_energy_3.cpp	/^void wake_all_threads(int num_thread) {$/;"	f
 wake_up_thread	sched_energy_3.cpp	/^void wake_up_thread(int tid){$/;"	f
 wake_up_thread	sched_ver1.cpp	/^void wake_up_thread(int tid) {$/;"	f
 wake_up_thread	sched_workqueue.cpp	/^void wake_up_thread(int tid){$/;"	f
