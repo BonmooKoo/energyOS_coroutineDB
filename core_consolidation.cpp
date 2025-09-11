@@ -26,10 +26,21 @@ constexpr double Q_A   = 0.2;    // Queue Down threshold-> Core consolidation
 constexpr double Q_B   = 0.9;    // Queue Up threshold -> Load Balancing
 constexpr int   MAX_THREADS = 4;
 constexpr int   SLO_THRESHOLD_MS=5;
+constexpr int   SCHEDULING_TICK=16;
 //실험 종료를 알리는 전역변수
 std::atomic<bool> g_stop{false};
 
-enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};
+enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};
+/*
+1) SLEEPING : Sleep flag = 1 인 상태
+2) ACTIVE : 실행중
+3) CONSOLIDATING : 현재 coroutine migration 진행중. 일종의 core간의 global lock 역할
+4) STARTED : 방금 실행해서 당분간은 coroutine migration 진행하지 마셈
+5) CONSOLIDATED : 방금 consolidation 수행했으니 당분간 하지마셈
+
+
+*/
+
 enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};
 
 class Scheduler;
@@ -313,6 +324,7 @@ static inline void pump_external_requests_into(Scheduler& sched, int burst = 32)
         sched.rx_queue.push(std::move(r));
         cnt++;
     }
+    printf("[%d]Pulled%d\n",sched.thread_id,cnt);
 }
 
 int sched_load(int c){
@@ -436,53 +448,55 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
 void master(Scheduler& sched, int tid, int coro_count) {
     bind_cpu(tid);
 
-    // 워커 코루틴들 생성 (지속적으로 rx_queue에서 요청을 소비)
     for (int i = 0; i < coro_count; ++i) {
-        print_worker(sched, tid, tid*coro_count+i);
+        print_worker(sched, tid, tid * coro_count + i);
     }
+    pump_external_requests_into(sched, /*burst*/64);
 
     int sched_count = 0;
-    //while (true) {
-    while(!g_stop.load()){//실험을 위해서 g_stop 계속 확인
-        // 1) 외부 수신 큐(g_rx) → 스레드 내부 rx_queue로 펌프
-        pump_external_requests_into(sched, /*burst*/32);
-
-        // 2) 스케줄링 (코루틴 하나 실행)
+    while (!g_stop.load()) {
         sched.schedule();
-        // 2-1) worker 코루틴은 자발적으로 yield를 통해 제어권을 내게 넘겨줌
 
-        // 3) core consolidation : 매 8회마다 스케줄링
-        if (++sched_count >= 8) {
+        if (++sched_count >= SCHEDULING_TICK) {
             sched_count = 0;
-            // 3-1) 저부하면 코어 정리 시도 (core 0는 절대 안꺼짐)
-            if (sched.is_idle() && tid != 0) {
-                printf("Core[%d] idle\n",tid);
-                if (core_consolidation(sched, tid)!=-1) {
-    			printf("[%d] sleep\n",tid);
-    			core_state[tid]=SLEEPING;
-                	if(!g_stop.load()) sleep_thread(tid); // 다른 곳으로 코루틴 넘기고 잠자기
-                }
-            }
-            // 3-2) SLO 위반 시 잠자는 스레드 깨워서 일부 코루틴 이관
-            else if (!g_stop.load() && sched.detect_SLO_violation()) {
-                for (int i=0;i<MAX_THREADS;i++){
-                    if (i!=tid && sleeping_flags[i]) {
-                        if(load_balancing(tid,i)!=-1){
-                        	wake_up_thread(i);
-			}
-                        break;
+            // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
+            if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED) {
+                core_state[tid] = ACTIVE;
+            } else {
+                // 3-1) 저부하이면 코어 정리 (core 0은 제외)
+                if (sched.is_idle() && tid != 0) {
+                    printf("Core[%d] idle\n", tid);
+                    if (core_consolidation(sched, tid) != -1) {
+                        printf("[%d] sleep\n", tid);
+                        core_state[tid] = SLEEPING;
+                        if (!g_stop.load()) {
+                            sleep_thread(tid);    // 넘기고 잠자기
+                            core_state[tid] = ACTIVE; // Wakeup 후 ACTIVE
+                        }
                     }
                 }
-            }
-	}//end if(++sched_count >3)
-    }//end while(!g_stop.load())
-   
-    // (실험용) 외부 큐 빨아오고, 로컬 큐가 빌 때까지 스케줄
-    // 실제로는 work coroutine이나 master나 멈추지 않고 계~속 작동하기때문에 이렇게 안함.
+                // 3-2) SLO 위반 시 잠자는 스레드 깨워 이관
+                else if (!g_stop.load() && sched.detect_SLO_violation()) {
+                    for (int i = 0; i < MAX_THREADS; i++) {
+                        if (i != tid && sleeping_flags[i]) {
+                            if (load_balancing(tid, i) != -1) {
+                                wake_up_thread(i);
+                            }
+                            break;
+                        }
+                    }
+                }
+            } // end else (core_state == ACTIVE)
+    	    //3-3) Pull request
+	    pump_external_requests_into(sched, /*burst*/64);
+        } // end if (++sched_count >= SCHEDULING_TICK)
+    } // end while (!g_stop.load())
+
+    // drain
     for (;;) {
         pump_external_requests_into(sched, 1024);
-        while(sched.rx_queue.size()!=0){
-        	sched.schedule();
+        while (sched.rx_queue.size() != 0) {
+            sched.schedule();
         }
         break;
     }
@@ -499,12 +513,12 @@ void timed_producer(int num_thread,int qps,int durationSec);
 
 int main() {
     const int coro_count   = 10;      // 워커 코루틴 수
-    const int num_thread   = 4;      // 워커 스레드 수
+    const int num_thread   = 2;      // 워커 스레드 수
     const int durationSec  = 10;     // 실험 시간 (초)
-    const int qps          = 50000;  // 초당 요청 개수
+    const int qps          = 500000;  // 초당 요청 개수
 
     // sleeping_flags 초기화
-    for (int i=0;i<MAX_THREADS;i++) sleeping_flags[i] = false;
+    for (int i=num_thread;i<MAX_THREADS;i++) sleeping_flags[i] = true;
 
 
     // 프로듀서 시작 (T초/QPS)
