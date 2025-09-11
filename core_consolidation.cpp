@@ -1,8 +1,10 @@
 // Boost coroutine version of the original cpp coroutine example
-
+//export LANG=ko_KR.UTF-8
 // Compile with: 
-// g++ -std=c++17 sched_energy_3.cpp -o sched_energy_3 -I./ -I/usr/local/include   -L/usr/local/lib -Wl,-rpath,/usr/local/lib   -lboost_coroutine -lboost_context -lboost_system   -libverbs -lmemcached -lpthread
+// g++ -std=c++17 core_consolidation.cpp -o core_consolidation -I./ -I/usr/local/include   -L/usr/local/lib -Wl,-rpath,/usr/local/lib   -lboost_coroutine -lboost_context -lboost_system   -libverbs -lmemcached -lpthread
+// 지금은 코루틴을 직접 옮기지만, 이 구현이 너무 무거우면 request만 옮기는 구현이 필요함.
 
+ 
 #include <boost/coroutine/symmetric_coroutine.hpp>
 #include <iostream>
 #include <thread>
@@ -19,20 +21,21 @@
 #include <unistd.h>
 #include <pthread.h>
 
-constexpr int   MAX_Q  = 32;     // Max Queue length
-constexpr double Q_A   = 0.3;    // Queue Down threshold-> Core consolidation
-constexpr double Q_B   = 0.7;    // Queue Up threshold -> Load Balancing
+constexpr int   MAX_Q  = 64;     // Max Queue length
+constexpr double Q_A   = 0.2;    // Queue Down threshold-> Core consolidation
+constexpr double Q_B   = 0.9;    // Queue Up threshold -> Load Balancing
 constexpr int   MAX_THREADS = 4;
 constexpr int   SLO_THRESHOLD_MS=5;
 //실험 종료를 알리는 전역변수
 std::atomic<bool> g_stop{false};
 
-enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING};
+enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED};
 enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};
 
-using coro_t    = boost::coroutines::symmetric_coroutine<void>;
-using CoroCall  = coro_t::call_type;   // caller
-using CoroYield = coro_t::yield_type;  // callee
+class Scheduler;
+using coro_t = boost::coroutines::symmetric_coroutine<Scheduler*>;
+using CoroCall = coro_t::call_type; //caller
+using CoroYield = coro_t::yield_type; //callee
 
 pid_t gettid() {
     return syscall(SYS_gettid);
@@ -45,9 +48,6 @@ void bind_cpu(int cpu_num){
     pthread_setaffinity_np(this_thread, sizeof(cpu_set_t), &cpuset);
 }
 
-
-
-class Scheduler;
 Scheduler* schedulers[MAX_THREADS] = {nullptr};
 std::condition_variable cvs[MAX_THREADS];
 std::mutex cv_mutexes[MAX_THREADS];
@@ -89,7 +89,6 @@ public:
     //std::lock_guard<std::mutex> lk(m_);
     return q_.size();
   }
-  //한번만 잠가서
   void steal_all(std::deque<Request>& out) {
     std::lock_guard<std::mutex> lk(m_);
     while (!q_.empty()) {
@@ -97,8 +96,6 @@ public:
       q_.pop_front();
     }
   }
-
-  // to.push_bulk(in): to를 한 번만 잠가서 in을 전부 q_로 이동
   void push_bulk(std::deque<Request>& in) {
     if (in.empty()) return;
     {
@@ -156,9 +153,9 @@ struct Task {
         return source == nullptr || !(*source);
     }
 
-    void resume() {
+    void resume(Scheduler* sched) {
         if (source && *source) {
-            (*source)();  // resume coroutine
+            (*source)(sched); // resume coroutine with scheduler pointer
         }
     }
     void set_type(int type){ task_type=type; }
@@ -177,7 +174,7 @@ public:
 
     Scheduler(int tid) : thread_id(tid) {
         schedulers[tid] = this;
-        core_state[tid] = ACTIVE;
+        core_state[tid] = ACTIVE;// 시작시 STARTED 단계로 consolidation을 방지.
     }
 
     bool detect_SLO_violation(){
@@ -210,28 +207,31 @@ public:
 
     // 한 번에 wait_list -> work_queue로 옮기고, 한 개 코루틴을 실행
     void schedule() {
-        printf("[%d] scheduling\n",thread_id);
         // 1) Wait list -> Work Queue 
         if(!wait_list.empty()){ 
            printf("[%d]pulling wait_list\n",thread_id);
            std::lock_guard<std::mutex> lock(mutex);
            while (!wait_list.empty()) {
-                work_queue.push(std::move(wait_list.front()));
-                wait_list.pop();
+                //work_queue.push(std::move(wait_list.front()));
+                emplace(std::move(wait_list.front()));
+                //printf("[%d]Enqueue<%d>\n",thread_id,wait_list.front().utask_id);
+		wait_list.pop();
            }
+           printf("[%d]pull fin <%d:%d>\n",thread_id,work_queue.size(),wait_list.size());
 	}
 
         // 2) (네트워크 폴링 자리에 필요 시 추가)
 
         // 3) Resume one coroutine
-        Task task;
-        {
-            if (work_queue.empty()) return;
-            task = std::move(work_queue.front());
-            work_queue.pop();
-        }
+	Task task;
+	{
+        	if (work_queue.empty()) return;
+        	task = std::move(work_queue.front());
+        	work_queue.pop();
+    	}
 
-        task.resume();
+        // CoroCall에 현재 스케줄러 포인터를 전달
+        (*task.source)(this); // `task.resume()` 대신 이렇게 호출
 
         if (!task.is_done() && !g_stop.load()) {
             emplace(std::move(task));
@@ -271,47 +271,41 @@ int post_mycoroutines_to(int from_tid, int to_tid) {
     auto& to_sched   = *schedulers[to_tid];
     auto& from_sched = *schedulers[from_tid];
 
-    std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
+    //std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
+    std::lock_guard<std::mutex> lk_to(to_sched.mutex);
     while (!from_sched.work_queue.empty()) {
         count++;
         to_sched.wait_list.push(std::move(from_sched.work_queue.front()));
         from_sched.work_queue.pop();
     }
-    printf("[%d]post_coroutineto<%d>\n",from_tid,to_tid);
+    printf("[%d:%d]post_coroutineto<%d:%d:%d>\n",from_tid,from_sched.work_queue.size(),to_tid,to_sched.work_queue.size(),to_sched.wait_list.size());
     return count;
 }
 
 // 자는 스레드를 깨울 때 코루틴 일부 전달
-int post_coroutine_to_awake(int from_tid, int to_tid){
-    int count = 0;
+int load_balancing(int from_tid, int to_tid){
+    printf("[%d>>%d]LoadBalancing",from_tid,to_tid);    
     auto& to_sched   = *schedulers[to_tid];
     auto& from_sched = *schedulers[from_tid];
 
-    std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
+    //std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
+    std::lock_guard<std::mutex> lk_to(to_sched.mutex);
     int half = 0;
     // from의 절반 정도만 넘기는 예시 (필요 시 정책 조정)
     {
         std::queue<Task> tmp;
-        int total = 0;
-        while (!from_sched.work_queue.empty()) {
-            tmp.push(std::move(from_sched.work_queue.front()));
-            from_sched.work_queue.pop();
-            total++;
-        }
+        int total = from_sched.work_queue.size();
         half = total / 2;
-        for (int i=0; i<total; ++i) {
-            Task t = std::move(tmp.front()); 
-            tmp.pop();
-            if (i < half) 
-		to_sched.wait_list.push(std::move(t));
-            else          
-		from_sched.wait_list.push(std::move(t));
+        for (int i=0; i<half; ++i) {
+            Task t = std::move(from_sched.work_queue.front()); 
+            from_sched.work_queue.pop();
+            to_sched.wait_list.push(std::move(t));
         }
     }
     return half;
 }
 
-// 외부 g_rx → 스레드 로컬 rx_queue로 흡수
+// global rx_queue → thread_local rx_queue
 static inline void pump_external_requests_into(Scheduler& sched, int burst = 32) {
     Request r;
     int cnt = 0;
@@ -360,7 +354,8 @@ int core_consolidation(Scheduler& sched, int tid){
     printf("[%d] 0\n",tid);
     //0)
     if(!state_active_to_consol(tid)){
-    	return -1; // ME = CONSOLIDATION
+    	printf("[%d] failed\n",tid);
+        return -1; // ME = CONSOLIDATION
     }
 
     //1)target
@@ -369,17 +364,15 @@ int core_consolidation(Scheduler& sched, int tid){
     for (int att = 0; att < 5; ++att) {
         int cand = power_of_two_choices(tid);
         if (cand < 0) break;
-
+        printf("[%d>%d]CONSOLIDATION\n",tid,cand);
         if (state_active_to_consol(cand)) {
             target = cand;
             break;// target = CONSOLIDATION
         }
     }
-    //temp
-    target = 0; 
     if (target < 0) {
-    printf("[%d]failed\n",tid); 
-       // Consolidation Failed
+        printf("[%d]-1fail\n",tid); 
+     // Consolidation Failed
         core_state[tid]=ACTIVE; 
         return -1;
     }
@@ -392,14 +385,10 @@ int core_consolidation(Scheduler& sched, int tid){
     sched.rx_queue.steal_all(tmp); 
     schedulers[target]->rx_queue.push_bulk(tmp);
     //4)change target state
+    printf("[%d:%d]ACTIVE\n",tid,target);
     core_state[target]=ACTIVE; 
     return target;
 }
-
-int load_balancing(Scheduler& sched, int tid){
-    return 0;
-}
-
 
 // ===============
 // Request 처리부
@@ -407,31 +396,42 @@ int load_balancing(Scheduler& sched, int tid){
 static void process_request_on_worker(const Request& r, int tid, int coroid) {
     // 여기에 실제 요청 처리 로직 삽입 (KV, Memcached, RDMA 등)
     // 데모: 간단한 출력 + 약간의 연산/슬립
-    std::cout << "  [Worker " << tid << "-" << coroid
+    /*std::cout << "  [Worker " << tid << "-" << coroid
               << "] handling req type=" << r.type
               << " key=" << r.key << " val=" << r.value
               << " on thread " << gettid() << "\n";
-    // 모의 처리
-    // std::this_thread::sleep_for(std::chrono::microseconds(50));
+    */
+    printf("[Worker%d-%d]Req[%d-%d]\n",tid,coroid,gettid(),r.key);
 }
 
+// 워커 코루틴: 깨어날 때마다 rx_queue에서 Request를 소비
+// yield_type은 void에서 Scheduler*로 변경
+// call_type은 Scheduler*를 받도록 변경
+
 void print_worker(Scheduler& sched, int tid, int coroid) {
-    auto* source = new CoroCall([tid, coroid](CoroYield& yield, Scheduler* current) {
-        std::cout << "[Coroutine " << tid << "-" << coroid
-                  << "] started on thread " << gettid() << "\n";
+    auto* source = new CoroCall([tid, coroid](CoroYield& yield) {
+        Scheduler* current = yield.get(); // (*call)(this)로 전달된 포인터
+        /*std::cout << "[Coroutine " << tid << "-" << coroid
+                 << "] started on thread " << gettid() << "\n";
+	*/
+        printf("[Coroutine%d-%d]started\n",gettid(),coroid);
         Request r;
         while (true) {
             if (!current->rx_queue.try_pop(r)) {
-                current = yield(current);  // 스케줄러에게 넘기고, 재개 시 새 포인터 받음
+                yield();
+                current = yield.get();
                 continue;
             }
             process_request_on_worker(r, tid, coroid);
-            current = yield(current);
+            yield();
+            current = yield.get();
         }
     });
 
-    sched.emplace(Task(source, tid, coroid));
+    Task task(source, tid, coroid, 0);
+    sched.emplace(std::move(task));
 }
+
 
 void master(Scheduler& sched, int tid, int coro_count) {
     bind_cpu(tid);
@@ -467,8 +467,9 @@ void master(Scheduler& sched, int tid, int coro_count) {
             else if (!g_stop.load() && sched.detect_SLO_violation()) {
                 for (int i=0;i<MAX_THREADS;i++){
                     if (i!=tid && sleeping_flags[i]) {
-                        post_coroutine_to_awake(tid,i);
-                        wake_up_thread(i);
+                        if(load_balancing(tid,i)!=-1){
+                        	wake_up_thread(i);
+			}
                         break;
                     }
                 }
@@ -485,25 +486,22 @@ void master(Scheduler& sched, int tid, int coro_count) {
         }
         break;
     }
-    
     printf("Master ended\n");
 }
 
 void thread_func(int tid, int coro_count) {
     bind_cpu(tid);
-
     Scheduler sched(tid);
     master(sched, tid, coro_count);
-     
-    std::cout << "Thread " << tid << " finished.\n";
+    printf("Thread%dfinished\n",tid);
 }
 void timed_producer(int num_thread,int qps,int durationSec);
 
 int main() {
     const int coro_count   = 10;      // 워커 코루틴 수
-    const int num_thread   = 2;      // 워커 스레드 수
-    const int durationSec  = 30;     // 실험 시간 (초)
-    const int qps          = 5000;  // 초당 요청 개수
+    const int num_thread   = 4;      // 워커 스레드 수
+    const int durationSec  = 10;     // 실험 시간 (초)
+    const int qps          = 50000;  // 초당 요청 개수
 
     // sleeping_flags 초기화
     for (int i=0;i<MAX_THREADS;i++) sleeping_flags[i] = false;
