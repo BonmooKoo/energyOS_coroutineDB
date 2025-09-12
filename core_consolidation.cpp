@@ -293,28 +293,6 @@ int post_mycoroutines_to(int from_tid, int to_tid) {
     return count;
 }
 
-// 자는 스레드를 깨울 때 코루틴 일부 전달
-int load_balancing(int from_tid, int to_tid){
-    printf("[%d>>%d]LoadBalancing",from_tid,to_tid);    
-    auto& to_sched   = *schedulers[to_tid];
-    auto& from_sched = *schedulers[from_tid];
-
-    //std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
-    std::lock_guard<std::mutex> lk_to(to_sched.mutex);
-    int half = 0;
-    // from의 절반 정도만 넘기는 예시 (필요 시 정책 조정)
-    {
-        std::queue<Task> tmp;
-        int total = from_sched.work_queue.size();
-        half = total / 2;
-        for (int i=0; i<half; ++i) {
-            Task t = std::move(from_sched.work_queue.front()); 
-            from_sched.work_queue.pop();
-            to_sched.wait_list.push(std::move(t));
-        }
-    }
-    return half;
-}
 
 // global rx_queue → thread_local rx_queue
 static inline void pump_external_requests_into(Scheduler& sched, int burst = 32) {
@@ -361,6 +339,10 @@ bool state_active_to_consol(int tid){
     CoreState expected = ACTIVE; 
     return core_state[tid].compare_exchange_strong(expected,CONSOLIDATING);
 }
+bool state_sleep_to_consol(int tid){
+    CoreState expected = SLEEPING; 
+    return core_state[tid].compare_exchange_strong(expected,CONSOLIDATING);
+}
 
 int core_consolidation(Scheduler& sched, int tid){
     printf("[%d] 0\n",tid);
@@ -397,9 +379,44 @@ int core_consolidation(Scheduler& sched, int tid){
     sched.rx_queue.steal_all(tmp); 
     schedulers[target]->rx_queue.push_bulk(tmp);
     //4)change target state
-    printf("[%d:%d]ACTIVE\n",tid,target);
-    core_state[target]=ACTIVE; 
+    //printf("[%d:%d]ACTIVE\n",tid,target);
+    //core_state[target]=ACTIVE; 
     return target;
+}
+// 자는 스레드를 깨울 때 코루틴 일부 전달
+int load_balancing(int from_tid, int to_tid){
+    Scheduler* to_sched   = schedulers[to_tid];
+    Scheduler* from_sched = schedulers[from_tid];
+    //0)만약 to_thread가 없었으면 만들어줌.
+    if(!to_sched){
+	printf("No to_thread\n");
+    }
+    
+    if(!state_active_to_consol(from_tid)){
+    	printf("[%d] failed\n",from_tid);
+        return -1; // ME = CONSOLIDATION
+    }
+    printf("[%d>>%d]LoadBalancing<%d>\n",from_tid,to_tid,from_sched->work_queue.size());    
+    if(!state_sleep_to_consol(to_tid)){
+	//이미 SLEEPING이 아님
+    	printf("[%d]Not Sleeping\n",to_tid);
+	return -1;
+    }
+    //std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
+    std::lock_guard<std::mutex> lk_to(to_sched->mutex);
+    int half = 0;
+    // from의 절반 정도만 넘기는 예시 (필요 시 정책 조정)
+        std::queue<Task> tmp;
+        int total = from_sched->work_queue.size();
+        half = total / 2;
+        printf("Here\n");
+        for (int i=0; i<half; ++i) {
+            Task t = std::move(from_sched->work_queue.front()); 
+            to_sched->wait_list.push(std::move(t));
+            from_sched->work_queue.pop();
+        }
+    printf("[%d>>%d]LoadBalancingEnd",from_tid,to_tid);    
+    return half;
 }
 
 // ===============
@@ -447,7 +464,9 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
 
 void master(Scheduler& sched, int tid, int coro_count) {
     bind_cpu(tid);
-
+    if(sleeping_flags[tid]){
+	sleep_thread(tid);//미리 재움
+    }
     for (int i = 0; i < coro_count; ++i) {
         print_worker(sched, tid, tid * coro_count + i);
     }
@@ -518,6 +537,7 @@ int main() {
     const int qps          = 500000;  // 초당 요청 개수
 
     // sleeping_flags 초기화
+    for (int i=0;i<num_thread;i++) sleeping_flags[i] = false;
     for (int i=num_thread;i<MAX_THREADS;i++) sleeping_flags[i] = true;
 
 
@@ -525,7 +545,7 @@ int main() {
     std::thread producer(timed_producer, num_thread,qps, durationSec);
     // 워커 시작
     std::thread thread_list[num_thread];
-    for (int i = 0; i < num_thread; i++) {
+    for (int i = 0; i < MAX_THREADS; i++) {
         thread_list[i] = std::thread(thread_func, i, coro_count);
     }
 
@@ -534,7 +554,7 @@ int main() {
     // 잠든 master 깨우기 
     wake_all_threads(num_thread); 
     // 워커 조인
-    for (int i = 0; i < num_thread; i++) {
+    for (int i = 0; i < MAX_THREADS; i++) {
         if (thread_list[i].joinable()) thread_list[i].join();
     }
 
