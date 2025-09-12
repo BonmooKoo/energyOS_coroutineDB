@@ -544,7 +544,7 @@ int main() {
     // 프로듀서 시작 (T초/QPS)
     std::thread producer(timed_producer, num_thread,qps, durationSec);
     // 워커 시작
-    std::thread thread_list[num_thread];
+    std::thread thread_list[MAX_THREADS];
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_list[i] = std::thread(thread_func, i, coro_count);
     }
