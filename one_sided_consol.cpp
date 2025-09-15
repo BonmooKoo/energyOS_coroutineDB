@@ -43,10 +43,7 @@ enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};
 3) CONSOLIDATING : 현재 coroutine migration 진행중. 일종의 core간의 global lock 역할
 4) STARTED : 방금 실행해서 당분간은 coroutine migration 진행하지 마셈
 5) CONSOLIDATED : 방금 consolidation 수행했으니 당분간 하지마셈
-
-
 */
-
 enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};
 
 class Scheduler;
@@ -516,8 +513,7 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
 
             switch (r.type) {
                 case OP_PUT:
-                    rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),
-					/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
+                    rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
 		    current->block_self(coroid);
 		    yield();
                     current = yield.get(); //RDMA poll됨. 

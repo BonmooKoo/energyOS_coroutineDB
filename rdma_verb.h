@@ -31,6 +31,7 @@ int poll_coroutine(int thread_id);
 int rdma_read(uint64_t serveraddress,uint32_t datalength,int server,int thread);
 int rdma_read_nopoll(uint64_t serveraddress,uint32_t datalength,int server,int thread,int id);
 int rdma_write(uint64_t clientaddress,uint64_t serveraddress,uint32_t datalength,int server,int thread);
+int rdma_write_nopoll(uint64_t clientaddress,uint64_t serveraddress,uint32_t datalength,int server,int thread,int coroid);
 int rdma_write_batch(uint64_t clientaddress, uint64_t serveraddress, uint32_t datalength,int server,int thread);
 
 int rdma_CAS(uint64_t compare,uint64_t swap,uint64_t serveraddress,uint32_t datalength,int server,int thread);
