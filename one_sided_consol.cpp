@@ -1,7 +1,7 @@
 // Boost coroutine version of the original cpp coroutine example
 //export LANG=ko_KR.UTF-8
 // Compile with: 
-// g++ -std=c++17 core_consolidation.cpp -o core_consolidation -I./ -I/usr/local/include   -L/usr/local/lib -Wl,-rpath,/usr/local/lib   -lboost_coroutine -lboost_context -lboost_system   -libverbs -lmemcached -lpthread
+// g++ -std=c++17 one_sided_consol.cpp -o one_sided_consol -I./ -I/usr/local/include   -L/usr/local/lib -Wl,-rpath,/usr/local/lib   -lboost_coroutine -lboost_context -lboost_system   -libverbs -lmemcached -lpthread
 // 지금은 코루틴을 직접 옮기지만, 이 구현이 너무 무거우면 request만 옮기는 구현이 필요함.
 
  
@@ -189,6 +189,10 @@ public:
     // 스레드 내부 요청 큐 (외부 g_rx에서 옮겨온 Request 소비)
     MPMCQueue rx_queue;
 
+    // RDMA IO 대기중인 코루틴
+    std::unordered_map<int,Task>blocked;
+    int blocked_num{0};
+
     Scheduler(int tid) : thread_id(tid) {
         schedulers[tid] = this;
         core_state[tid] = ACTIVE;// 시작시 STARTED 단계로 consolidation을 방지.
@@ -216,10 +220,26 @@ public:
         wait_list.push(std::move(task));
     }
 
-
     bool is_empty() {
         std::lock_guard<std::mutex> lock(mutex);
         return work_queue.empty() && wait_list.empty();
+    }
+    
+    // 코루틴을 blocked 리스트에 넣기
+    void block_task(Task&& t) {
+        int id = t.utask_id;
+        blocked[id] = std::move(t);
+        blocked_num++;
+    }
+
+    // RDMA 완료 시 깨우기
+    void wake_task(int utask_id) {
+        auto it = blocked.find(utask_id);
+        if (it != blocked.end()) {
+            work_queue.push(std::move(it->second));
+            blocked.erase(it);
+            blocked_num--;
+        }
     }
 
     // 한 번에 wait_list -> work_queue로 옮기고, 한 개 코루틴을 실행
@@ -237,25 +257,39 @@ public:
            printf("[%d]pull fin <%d:%d>\n",thread_id,work_queue.size(),wait_list.size());
 	}
 
-        // 2) (네트워크 폴링 자리에 필요 시 추가)
+    // 2) RDMA poll 확인
+    int next_id = poll_coroutine(this->thread_id);
+    if (next_id < 0) {
+        // 2-1) poll 실패 → 일반 코루틴 하나 실행
+        if (work_queue.empty()) return;
+        Task task = std::move(work_queue.front());
+        work_queue.pop();
 
-        // 3) Resume one coroutine
-	Task task;
-	{
-        	if (work_queue.empty()) return;
-        	task = std::move(work_queue.front());
-        	work_queue.pop();
-    	}
-
-        // CoroCall에 현재 스케줄러 포인터를 전달
-        (*task.source)(this); // `task.resume()` 대신 이렇게 호출
+        (*task.source)(this);
 
         if (!task.is_done() && !g_stop.load()) {
             emplace(std::move(task));
         }
-    }
-};
+    } else {
+        // 2-2) poll 성공 → blocked에서 해당 코루틴 바로 깨움
+        auto it = blocked.find(next_id);
+        if (it != blocked.end()) {
+            Task task = std::move(it->second);
+            blocked.erase(it);
+            blocked_num--;
 
+            (*task.source)(this);
+
+            if (!task.is_done() && !g_stop.load()) {
+                emplace(std::move(task));
+            }
+        } else {
+            // 디버그용: poll 결과 있는데 blocked에 없음
+            printf("poll returned %d but not found in blocked!\n", next_id);
+        }
+    }
+}
+};
 // =====================
 // Sleep / Wake helpers
 // =====================
