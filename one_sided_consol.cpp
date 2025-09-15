@@ -21,6 +21,12 @@
 #include <unistd.h>
 #include <pthread.h>
 
+//RDMA
+#include "rdma_common.h"
+#include "rdma_verb.h"
+#include "keeper.h"
+
+
 constexpr int   MAX_Q  = 64;     // Max Queue length
 constexpr double Q_A   = 0.2;    // Queue Down threshold-> Core consolidation
 constexpr double Q_B   = 0.9;    // Queue Up threshold -> Load Balancing
@@ -567,6 +573,11 @@ void thread_func(int tid, int coro_count) {
 void timed_producer(int num_thread,int qps,int durationSec);
 
 int main() {
+    printf("RDMA Connection\n");
+    for (int i=0;i<MAX_THREADS;i++){
+	client_connection(0,MAX_THREADS,i);
+    }
+    printf("Start");
     const int coro_count   = 10;      // 워커 코루틴 수
     const int num_thread   = 2;      // 워커 스레드 수
     const int durationSec  = 10;     // 실험 시간 (초)
@@ -579,6 +590,10 @@ int main() {
 
     // 프로듀서 시작 (T초/QPS)
     std::thread producer(timed_producer, num_thread,qps, durationSec);
+  
+    // 시간 측정
+    uint64_t now = std::time(nullptr);
+    printf("Start time : %lu \n",now);
     // 워커 시작
     std::thread thread_list[MAX_THREADS];
     for (int i = 0; i < MAX_THREADS; i++) {
@@ -587,6 +602,8 @@ int main() {
 
     // 프로듀서 종료 대기 
     producer.join();
+    now = std::time(nullptr);
+    printf("End time : %lu \n",now);
     // 잠든 master 깨우기 
     wake_all_threads(num_thread); 
     // 워커 조인
