@@ -487,6 +487,63 @@ restart_write:
 #endif
 	return 0;
 }
+int rdma_write_nopoll(uint64_t clientaddress, uint64_t serveraddress, uint32_t datalength,int server,int thread,int coro_id)
+{
+	struct ibv_wc wc;
+	struct ibv_sge client_send_sge;
+	memset(&client_send_sge,0,sizeof(client_send_sge));
+	int ret = -1;
+	memcpy(client_src_mr[thread]->addr,(void *)clientaddress, datalength);
+	client_send_sge.addr = (uint64_t)client_dst_mr[thread]->addr;
+	client_send_sge.length = datalength;
+	client_send_sge.lkey = client_dst_mr[thread]->lkey;
+	ibv_send_wr client_send_wr;
+	ibv_send_wr *bad_client_send_wr;
+	bzero(&client_send_wr, sizeof(client_send_wr));
+	client_send_wr.sg_list = &client_send_sge;
+	client_send_wr.num_sge = 1;
+	client_send_wr.opcode = IBV_WR_RDMA_WRITE;
+	client_send_wr.send_flags = IBV_SEND_SIGNALED;
+        //코루틴위해서 추가
+	client_send_wr.wr_id=coro_id;
+	/* we have to tell server side info for RDMA */ 
+	client_send_wr.wr.rdma.rkey = server_info[server].rkey;
+	client_send_wr.wr.rdma.remote_addr = server_info[server].address+ serveraddress;
+	/* Now we post it */
+	ret = ibv_post_send(client_qp[thread][server],
+						&client_send_wr,
+						&bad_client_send_wr);
+	if (ret)
+	{
+		printf("(rdma_read_nopoll)Worker[%d %d] Failed to read client dst buffer from the master, ret : %d/\ 
+ 													errno: %d/\ 
+													SGE.addr = %p, length = %d, lkey = 0x%x\n",
+				thread, coro_id,
+				ret,
+				-errno,
+				client_dst_mr[thread]->addr,
+       				client_dst_mr[thread]->length,
+       				client_dst_mr[thread]->lkey
+					);
+		return -errno;
+	}
+
+	/*
+	        struct ibv_wc wc;
+        ret=pollWithCQ(client_cq[thread], poll_count[thread]+1, &wc);
+        poll_count[thread]=0;
+
+        if(ret==-1){
+                printf("%d) read poll failed\n",thread);
+                exit(1);
+                //goto restart_read;
+        }
+	*/
+	//no polling
+	return ret;
+}
+
+
 int rdma_write_batch(uint64_t clientaddress, uint64_t serveraddress, uint32_t datalength,int server,int thread){
 #ifdef TIMECHECK
 	timespec t1, t2;

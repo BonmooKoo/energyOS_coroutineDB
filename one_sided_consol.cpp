@@ -192,7 +192,7 @@ public:
     // RDMA IO 대기중인 코루틴
     std::unordered_map<int,Task>blocked;
     int blocked_num{0};
-
+    int block_hint{-1};
     Scheduler(int tid) : thread_id(tid) {
         schedulers[tid] = this;
         core_state[tid] = ACTIVE;// 시작시 STARTED 단계로 consolidation을 방지.
@@ -224,22 +224,26 @@ public:
         std::lock_guard<std::mutex> lock(mutex);
         return work_queue.empty() && wait_list.empty();
     }
-    
-    // 코루틴을 blocked 리스트에 넣기
+
+    //RDMA
+    void block_self(int utask_id) { block_hint = utask_id; }
+    // 코루틴을 blocked 리스트에 넣기 -- RDMA request 전송한 코루틴이 스스로
     void block_task(Task&& t) {
-        int id = t.utask_id;
-        blocked[id] = std::move(t);
+        blocked[t.utask_id] = std::move(t);
         blocked_num++;
     }
 
-    // RDMA 완료 시 깨우기
-    void wake_task(int utask_id) {
-        auto it = blocked.find(utask_id);
+    // RDMA 완료 시 깨우기 -- Master가 코루틴 깨우
+    bool wake_task(int uid) {
+        auto it = blocked.find(uid);
         if (it != blocked.end()) {
             work_queue.push(std::move(it->second));
             blocked.erase(it);
             blocked_num--;
+            return true;
         }
+	printf("[%d]wake_task wrong<%d>\n",thread_id,uid);
+	return false;
     }
 
     // 한 번에 wait_list -> work_queue로 옮기고, 한 개 코루틴을 실행
@@ -257,38 +261,30 @@ public:
            printf("[%d]pull fin <%d:%d>\n",thread_id,work_queue.size(),wait_list.size());
 	}
 
-    // 2) RDMA poll 확인
-    int next_id = poll_coroutine(this->thread_id);
-    if (next_id < 0) {
-        // 2-1) poll 실패 → 일반 코루틴 하나 실행
-        if (work_queue.empty()) return;
-        Task task = std::move(work_queue.front());
-        work_queue.pop();
+    	// 2) RDMA poll 확인
+    	int next_id = poll_coroutine(this->thread_id);
+    	if (next_id < 0) {//no RDMA
+        	// 2-1) poll 실패 → 일반 코루틴 하나 실행
+	        if (work_queue.empty()) return;
+	        Task task = std::move(work_queue.front());
+	        work_queue.pop();
 
-        (*task.source)(this);
-
-        if (!task.is_done() && !g_stop.load()) {
-            emplace(std::move(task));
-        }
-    } else {
-        // 2-2) poll 성공 → blocked에서 해당 코루틴 바로 깨움
-        auto it = blocked.find(next_id);
-        if (it != blocked.end()) {
-            Task task = std::move(it->second);
-            blocked.erase(it);
-            blocked_num--;
-
-            (*task.source)(this);
-
-            if (!task.is_done() && !g_stop.load()) {
-                emplace(std::move(task));
-            }
-        } else {
-            // 디버그용: poll 결과 있는데 blocked에 없음
-            printf("poll returned %d but not found in blocked!\n", next_id);
-        }
-    }
-}
+        	(*task.source)(this); // resume
+               
+	        if (!task.is_done() && !g_stop.load()) {
+        	    if(block_hint == task.utask_id){
+			block_task(std::move(task));
+			block_hint=-1;
+			return;
+		    }
+		    else{
+		    	emplace(std::move(task));
+		    }
+        	}
+    	} else {//RDMA polled
+    		wake_task(next_id);
+	}
+      }//void schedule()
 };
 // =====================
 // Sleep / Wake helpers
@@ -423,6 +419,7 @@ int core_consolidation(Scheduler& sched, int tid){
     //core_state[target]=ACTIVE; 
     return target;
 }
+
 // 자는 스레드를 깨울 때 코루틴 일부 전달
 int load_balancing(int from_tid, int to_tid){
     Scheduler* to_sched   = schedulers[to_tid];
@@ -462,22 +459,13 @@ int load_balancing(int from_tid, int to_tid){
 // ===============
 // Request 처리부
 // ===============
+//request handler func
 static void process_request_on_worker(const Request& r, int tid, int coroid) {
     switch (r.type) {
         case OP_PUT:
-            printf("[Worker %d-%d] PUT key=%llu val=%llu\n",
-                   tid, coroid,
-                   (unsigned long long)r.key,
-                   (unsigned long long)r.value);
-            // TODO: kv_store[r.key] = r.value;
-            break;
+	    break;
 
         case OP_GET:
-            printf("[Worker %d-%d] GET key=%llu\n",
-                   tid, coroid,
-                   (unsigned long long)r.key);
-            // TODO: auto it = kv_store.find(r.key);
-            //       if(it != kv_store.end()) return it->second;
             break;
 
         case OP_DELETE:
@@ -516,10 +504,8 @@ static void process_request_on_worker(const Request& r, int tid, int coroid) {
 void print_worker(Scheduler& sched, int tid, int coroid) {
     auto* source = new CoroCall([tid, coroid](CoroYield& yield) {
         Scheduler* current = yield.get(); // (*call)(this)로 전달된 포인터
-        /*std::cout << "[Coroutine " << tid << "-" << coroid
-                 << "] started on thread " << gettid() << "\n";
-	*/
-        printf("[Coroutine%d-%d]started\n",gettid(),coroid);
+        printf("[Coroutine%d-%d]started\n", gettid(), coroid);
+
         Request r;
         while (true) {
             if (!current->rx_queue.try_pop(r)) {
@@ -527,10 +513,30 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
                 current = yield.get();
                 continue;
             }
-            process_request_on_worker(r, tid, coroid);
-            yield();
-            current = yield.get();
+
+            switch (r.type) {
+                case OP_PUT:
+                    rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),
+					/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
+		    current->block_self(coroid);
+		    yield();
+                    current = yield.get(); //RDMA poll됨. 
+                    break;
+                case OP_GET:
+                    rdma_read_nopoll((r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE,8, 0, tid, coroid);
+		    current->block_self(coroid);
+		    yield();
+                    current = yield.get(); //RDMA poll됨. 
+                    break;
+                default:
+                    // RDMA 필요 없는 경우는 바로 처리
+                    process_request_on_worker(r, tid, coroid);
+		    yield();
+		    current = yield.get();
+                    continue;
+            }
         }
+
     });
 
     Task task(source, tid, coroid, 0);
@@ -563,7 +569,15 @@ void master(Scheduler& sched, int tid, int coro_count) {
                     printf("Core[%d] idle\n", tid);
                     if (core_consolidation(sched, tid) != -1) {
                         printf("[%d] sleep\n", tid);
-                        core_state[tid] = SLEEPING;
+                        //대기중인 RDMA request 다 처리함
+			while(sched.blocked_num>0){
+				int next_id = poll_coroutine(tid);
+				if(next_id>=0){
+					sched.wake_task(next_id);
+					sched.schedule();
+				}
+			}
+			core_state[tid] = SLEEPING;
                         if (!g_stop.load()) {
                             sleep_thread(tid);    // 넘기고 잠자기
                             core_state[tid] = ACTIVE; // Wakeup 후 ACTIVE
