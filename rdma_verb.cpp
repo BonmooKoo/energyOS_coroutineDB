@@ -152,7 +152,7 @@ int poll_coroutine(int thread_id) {
 // int client_connection(struct sockaddr_in *s_addr,int server,int thread)
 int client_connection(int client, int thread_num, int thread)
 {
-	//printf("connection start on %d\n", thread + client * thread_num);
+	printf("connection start on %d\n", thread + client * thread_num);
 	int ret;
 	if(!createContext(&contexts[thread],1,3,0)){
 		printf("createContext failed\n");
@@ -177,7 +177,7 @@ int client_connection(int client, int thread_num, int thread)
 		printf("memcache connect fail\n");
                 exit(1);
 	}
-	//printf("memcache connected\n");
+	printf("memcache connected\n");
 	//printf("Here\n");
 	struct RDMA_Data* rdma_attr=(struct RDMA_Data*)malloc(sizeof(struct RDMA_Data));
 	//xchange metadata
@@ -223,7 +223,7 @@ int client_connection(int client, int thread_num, int thread)
 		memcache.memSet(cl_key,4,(char*)rdma_attr,sizeof(struct RDMA_Data));
 		//printf("Done\n");
 	}
-
+        printf("[rdma_verb]sendtoserver\n");
 	for(int i=0;i<SERVER;i++){
 		//printf("changeQueuePairStateToRTR %d...", i);
 		if(!changeQueuePairStateToRTR(client_qp[thread][i],1,server_qp_num[i],server_id[i],server_gid[i])){
@@ -232,7 +232,7 @@ int client_connection(int client, int thread_num, int thread)
 		//printf("Done\n");
 	}
 
-	//printf("src malloc...");
+	printf("src malloc...");
 	src[thread]=(char*)malloc(SIZEOFNODE);
 	
 	if(!src[thread]){

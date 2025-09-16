@@ -335,7 +335,7 @@ static inline void pump_external_requests_into(Scheduler& sched, int burst = 32)
         sched.rx_queue.push(std::move(r));
         cnt++;
     }
-    printf("[%d]Pulled%d\n",sched.thread_id,cnt);
+    //printf("[%d]Pulled%d\n",sched.thread_id,cnt);
 }
 
 int sched_load(int c){
@@ -355,7 +355,6 @@ int pick_active_random(int self, int also_exclude = -1) {
     }
     return -1;
 }
-
 
 int power_of_two_choices(int self) {
     int a = pick_active_random(self);
@@ -381,7 +380,7 @@ int core_consolidation(Scheduler& sched, int tid){
     printf("[%d] 0\n",tid);
     //0)
     if(!state_active_to_consol(tid)){
-    	printf("[%d] failed\n",tid);
+    	//printf("[%d]I'm CONSOLIDATION\n",tid);
         return -1; // ME = CONSOLIDATION
     }
 
@@ -398,7 +397,7 @@ int core_consolidation(Scheduler& sched, int tid){
         }
     }
     if (target < 0) {
-        printf("[%d]-1fail\n",tid); 
+        printf("[%d]NO target\n",tid); 
      // Consolidation Failed
         core_state[tid]=ACTIVE; 
         return -1;
@@ -427,7 +426,7 @@ int load_balancing(int from_tid, int to_tid){
     }
     
     if(!state_active_to_consol(from_tid)){
-    	printf("[%d] failed\n",from_tid);
+    	//printf("[%d] failed\n",from_tid);
         return -1; // ME = CONSOLIDATION
     }
     printf("[%d>>%d]LoadBalancing<%d>\n",from_tid,to_tid,from_sched->work_queue.size());    
@@ -443,7 +442,6 @@ int load_balancing(int from_tid, int to_tid){
         std::queue<Task> tmp;
         int total = from_sched->work_queue.size();
         half = total / 2;
-        printf("Here\n");
         for (int i=0; i<half; ++i) {
             Task t = std::move(from_sched->work_queue.front()); 
             to_sched->wait_list.push(std::move(t));
@@ -458,40 +456,7 @@ int load_balancing(int from_tid, int to_tid){
 // ===============
 //request handler func
 static void process_request_on_worker(const Request& r, int tid, int coroid) {
-    switch (r.type) {
-        case OP_PUT:
-	    break;
-
-        case OP_GET:
-            break;
-
-        case OP_DELETE:
-            printf("[Worker %d-%d] DELETE key=%llu\n",
-                   tid, coroid,
-                   (unsigned long long)r.key);
-            break;
-
-        case OP_RANGE:
-            printf("[Worker %d-%d] RANGE from key=%llu\n",
-                   tid, coroid,
-                   (unsigned long long)r.key);
-            // TODO: for(auto it = kv_store.lower_bound(r.key);
-            //           it != kv_store.end() && it->first < r.value; ++it) { ... }
-            break;
-
-        case OP_UPDATE:
-            printf("[Worker %d-%d] UPDATE key=%llu new_val=%llu\n",
-                   tid, coroid,
-                   (unsigned long long)r.key,
-                   (unsigned long long)r.value);
-            // TODO: kv_store[r.key] = r.value;
-            break;
-
-        default:
-            printf("[Worker %d-%d] UNKNOWN type=%d\n",
-                   tid, coroid, r.type);
-            break;
-    }
+	printf("[Worker%d-%d]%d\n",tid,coroid,r.key);
 }
 
 // 워커 코루틴: 깨어날 때마다 rx_queue에서 Request를 소비
@@ -513,14 +478,16 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
 
             switch (r.type) {
                 case OP_PUT:
-                    rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
-		    current->block_self(coroid);
+                    //rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
+		    //current->block_self(coroid);
+                    process_request_on_worker(r, tid, coroid);
 		    yield();
                     current = yield.get(); //RDMA poll됨. 
                     break;
                 case OP_GET:
-                    rdma_read_nopoll((r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE,8, 0, tid, coroid);
-		    current->block_self(coroid);
+                    //rdma_read_nopoll((r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE,8, 0, tid, coroid);
+		    //current->block_self(coroid);
+                    process_request_on_worker(r, tid, coroid);
 		    yield();
                     current = yield.get(); //RDMA poll됨. 
                     break;
@@ -540,20 +507,28 @@ void print_worker(Scheduler& sched, int tid, int coroid) {
 }
 
 
+
+
 void master(Scheduler& sched, int tid, int coro_count) {
     bind_cpu(tid);
     if(sleeping_flags[tid]){
+	printf("[%d]Sleep\n",tid);
+	core_state[tid] = SLEEPING;
 	sleep_thread(tid);//미리 재움
+	printf("[%d]Wakeup\n",tid);
     }
     for (int i = 0; i < coro_count; ++i) {
         print_worker(sched, tid, tid * coro_count + i);
     }
+	printf("[%d]Here1\n",tid);
+    
     pump_external_requests_into(sched, /*burst*/64);
+
+	printf("[%d]Here2\n",tid);
 
     int sched_count = 0;
     while (!g_stop.load()) {
         sched.schedule();
-
         if (++sched_count >= SCHEDULING_TICK) {
             sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
@@ -565,7 +540,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
                     printf("Core[%d] idle\n", tid);
                     if (core_consolidation(sched, tid) != -1) {
                         printf("[%d] sleep\n", tid);
-                        //대기중인 RDMA request 다 처리함
+			//대기중인 RDMA request 다 처리함
 			while(sched.blocked_num>0){
 				int next_id = poll_coroutine(tid);
 				if(next_id>=0){
@@ -617,11 +592,16 @@ void thread_func(int tid, int coro_count) {
 void timed_producer(int num_thread,int qps,int durationSec);
 
 int main() {
-    printf("RDMA Connection\n");
+    std::thread thread_list[MAX_THREADS];
+    /*printf("RDMA Connection\n");
     for (int i=0;i<MAX_THREADS;i++){
-	client_connection(0,MAX_THREADS,i);
+	thread_list[i] = std::thread(client_connection,0,MAX_THREADS,i);
     }
-    printf("Start");
+    for (int i = 0; i < MAX_THREADS; i++) {
+        thread_list[i].join();
+    }
+    */
+    printf("Start\n");
     const int coro_count   = 10;      // 워커 코루틴 수
     const int num_thread   = 2;      // 워커 스레드 수
     const int durationSec  = 10;     // 실험 시간 (초)
@@ -639,7 +619,6 @@ int main() {
     uint64_t now = std::time(nullptr);
     printf("Start time : %lu \n",now);
     // 워커 시작
-    std::thread thread_list[MAX_THREADS];
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_list[i] = std::thread(thread_func, i, coro_count);
     }

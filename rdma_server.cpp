@@ -39,7 +39,7 @@ void sigint_handler(int sig) {
 int main(int argc,char* argv[]){
 	int ret;
 	char* server_name;
-	int client_num=32;
+	int client_num=atoi(argv[1]);
 	int server_num=0;
 	server_name="server0";
 	signal(SIGINT, sigint_handler);
