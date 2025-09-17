@@ -68,6 +68,16 @@ std::mutex cv_mutexes[MAX_THREADS];
 std::atomic<bool> sleeping_flags[MAX_THREADS];
 std::atomic<CoreState> core_state[MAX_THREADS];
 
+//=====================
+// Latency
+//=====================
+static inline uint64_t now_ns() {
+    using clock = std::chrono::steady_clock;
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(
+               clock::now().time_since_epoch()).count();
+}
+
+
 // =====================
 // Request & MPMC Queue
 // =====================
@@ -259,8 +269,9 @@ public:
 	}
 
     	// 2) RDMA poll 확인
-    	int next_id = poll_coroutine(this->thread_id);
-    	if (next_id < 0) {//no RDMA
+    	//int next_id = poll_coroutine(this->thread_id);
+    	int next_id = -1;
+	if (next_id < 0) {//no RDMA
         	// 2-1) poll 실패 → 일반 코루틴 하나 실행
 	        if (work_queue.empty()) return;
 	        Task task = std::move(work_queue.front());
@@ -380,7 +391,7 @@ int core_consolidation(Scheduler& sched, int tid){
     printf("[%d] 0\n",tid);
     //0)
     if(!state_active_to_consol(tid)){
-    	//printf("[%d]I'm CONSOLIDATION\n",tid);
+    	printf("[%d]CONSOLIDATING by someone\n",tid);
         return -1; // ME = CONSOLIDATION
     }
 
@@ -390,16 +401,16 @@ int core_consolidation(Scheduler& sched, int tid){
     for (int att = 0; att < 5; ++att) {
         int cand = power_of_two_choices(tid);
         if (cand < 0) break;
-        printf("[%d>%d]CONSOLIDATION\n",tid,cand);
         if (state_active_to_consol(cand)) {
+            printf("[%d>%d]CONSOLIDATING\n",tid,cand);
             target = cand;
-            break;// target = CONSOLIDATION
+            break;// target = CONSOLIDATING 
         }
     }
     if (target < 0) {
         printf("[%d]NO target\n",tid); 
      // Consolidation Failed
-        core_state[tid]=ACTIVE; 
+        core_state[tid]=CONSOLIDATED; 
         return -1;
     }
      
@@ -410,9 +421,6 @@ int core_consolidation(Scheduler& sched, int tid){
     std::deque<Request> tmp;
     sched.rx_queue.steal_all(tmp); 
     schedulers[target]->rx_queue.push_bulk(tmp);
-    //4)change target state
-    //printf("[%d:%d]ACTIVE\n",tid,target);
-    //core_state[target]=ACTIVE; 
     return target;
 }
 
@@ -427,7 +435,7 @@ int load_balancing(int from_tid, int to_tid){
     
     if(!state_active_to_consol(from_tid)){
     	//printf("[%d] failed\n",from_tid);
-        return -1; // ME = CONSOLIDATION
+        return -1; // ME = CONSOLIDATING
     }
     printf("[%d>>%d]LoadBalancing<%d>\n",from_tid,to_tid,from_sched->work_queue.size());    
     if(!state_sleep_to_consol(to_tid)){
@@ -447,7 +455,8 @@ int load_balancing(int from_tid, int to_tid){
             to_sched->wait_list.push(std::move(t));
             from_sched->work_queue.pop();
         }
-    printf("[%d>>%d]LoadBalancingEnd",from_tid,to_tid);    
+    core_state[to_tid]=CONSOLIDATED;
+    printf("[%d>>%d]LoadBalancingEnd\n",from_tid,to_tid);    
     return half;
 }
 
@@ -456,7 +465,7 @@ int load_balancing(int from_tid, int to_tid){
 // ===============
 //request handler func
 static void process_request_on_worker(const Request& r, int tid, int coroid) {
-	printf("[Worker%d-%d]%d\n",tid,coroid,r.key);
+	//printf("[Worker%d-%d]%d\n",tid,coroid,r.key);
 }
 
 // 워커 코루틴: 깨어날 때마다 rx_queue에서 Request를 소비
@@ -520,11 +529,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
     for (int i = 0; i < coro_count; ++i) {
         print_worker(sched, tid, tid * coro_count + i);
     }
-	printf("[%d]Here1\n",tid);
-    
     pump_external_requests_into(sched, /*burst*/64);
-
-	printf("[%d]Here2\n",tid);
 
     int sched_count = 0;
     while (!g_stop.load()) {
@@ -532,7 +537,8 @@ void master(Scheduler& sched, int tid, int coro_count) {
         if (++sched_count >= SCHEDULING_TICK) {
             sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
-            if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED) {
+            
+	    if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED) {
                 core_state[tid] = ACTIVE;
             } else {
                 // 3-1) 저부하이면 코어 정리 (core 0은 제외)
@@ -551,7 +557,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
 			core_state[tid] = SLEEPING;
                         if (!g_stop.load()) {
                             sleep_thread(tid);    // 넘기고 잠자기
-                            core_state[tid] = ACTIVE; // Wakeup 후 ACTIVE
+                            core_state[tid] = STARTED; // Wakeup 후 ACTIVE
                         }
                     }
                 }
@@ -560,7 +566,8 @@ void master(Scheduler& sched, int tid, int coro_count) {
                     for (int i = 0; i < MAX_THREADS; i++) {
                         if (i != tid && sleeping_flags[i]) {
                             if (load_balancing(tid, i) != -1) {
-                                wake_up_thread(i);
+                                wake_up_thread(i);//깨워
+				core_state[tid]=CONSOLIDATED;
                             }
                             break;
                         }
