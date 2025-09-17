@@ -423,7 +423,7 @@ int core_consolidation(Scheduler& sched, int tid){
     printf("[%d] 0\n",tid);
     //0)
     if(!state_active_to_consol(tid)){
-    	printf("[%d]CONSOLIDATING by someone\n",tid);
+    	printf("[%d] %d by someone\n",tid,core_state[tid].load());
         return -1; // Someone is giving me a job
     }
     printf("[%d]ACTIVE->CONSOL\n",tid);
@@ -434,7 +434,7 @@ int core_consolidation(Scheduler& sched, int tid){
         /*int cand = power_of_two_choices(tid);
         if (cand < 0) continue;
         if (state_active_to_consol(cand)) {
-            printf("[%d>%d]CONSOLIDATING\n",tid,cand);
+            printf("[%d>%d]CONSOL\n",tid,cand);
             target = cand;
             break;// target = CONSOLIDATING 
         }*/
@@ -447,8 +447,8 @@ int core_consolidation(Scheduler& sched, int tid){
         core_state[tid]=CONSOLIDATED;  //Failed. Instead of consolidation, Just Empty my work queue and sleep  
         return -2;
     }
+    printf("[%d>%d]CONSOL\n",tid,target);
      
-    printf("[%d] 2\n",tid);
     //2)move coroutine 
     post_mycoroutines_to(tid,target);	
     //3)move request 
@@ -569,6 +569,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
                 if (sched.is_idle() && tid != 0) {
                     printf("Core[%d] idle\n", tid);
 		    int cc = core_consolidation(sched,tid);
+                    printf("Core[%d] cc:%d\n", tid,cc);
                     if (cc >= 0) {
 			//대기중인 RDMA request 다 처리함
 			while(sched.blocked_num>0){
@@ -585,25 +586,28 @@ void master(Scheduler& sched, int tid, int coro_count) {
                             core_state[tid] = STARTED; // Wakeup 후 ACTIVE
                         }
                     }
-		    else if(cc==-2){
-			//TODO: 수정
-			//core consolidation 실패 > 스스로 pull 없이 request 전부 처리하고 잠에듬.
-			//state[tid] = CONSOLIDATED
-			while(sched.blocked_num>0 && work_queue.empty()){
-				int next_id = poll_coroutine(tid);
-				if(next_id>=0){
-					sched.wake_task(next_id);
-					sched.schedule();
-				}
-			}
-                        printf("[%d] sleep after CC\n", tid);
-			core_state[tid] = SLEEPING;
-                        if (!g_stop.load()) {
-                            sleep_thread(tid);    // 넘기고 잠자기
-                            core_state[tid] = STARTED; // Wakeup 후 ACTIVE
-                        }
+		    else if (cc == -2) {
+		    // CC 실패: 타겟을 못 잡음. 내 CONSOLIDATING 해제(짧은 쿨다운 의미로 CONSOLIDATED).
+    			core_state[tid] = CONSOLIDATED;
+
+		    // 1) 남은 RDMA 완료를 너무 오래 돌지 않게 예산 한도 내에서만 처리
+		    int budget = 4096;
+		    while (sched.blocked_num > 0 || sched.work_queue.empty() || budget-- > 0 || sched.rx_queue.size()>0) {
+		        int next_id = poll_coroutine(tid);
+		        if (next_id >= 0) {
+		            sched.wake_task(next_id);
+		            sched.schedule();
+		        } else {
+		            break; // 더 이상 깰 코루틴 없음
+		        }
 		    }
-		    else { //cc ==-1 someone is giving me his coroutine
+		    printf("[%d]Work n Sleep\n",tid);
+		    if (!g_stop.load()) {
+		            sleep_thread(tid);            // 넘기고 잠
+		            core_state[tid] = STARTED;    // 깨어난 뒤 다음 틱에 ACTIVE로 복원됨
+	    	    }
+		}
+		else { //cc ==-1 someone is giving me his coroutine
 		    }	
                 }
                 // 3-2) SLO 위반 시 잠자는 스레드 깨워 이관
