@@ -355,29 +355,7 @@ int sched_load(int c){
     return wq+rx;
 }
 
-int pick_active_random(int self, int also_exclude = -1) {
-    // ACTIVE + 유효 스케줄러만
-    for (int tries = 0; tries < MAX_THREADS; ++tries) {
-        int c = rand() % MAX_THREADS;
-        if (c == self || c == also_exclude) continue;
-        if (!schedulers[c]) continue;
-        if (core_state[c].load() != ACTIVE) continue;
-        return c;
-    }
-    return -1;
-}
-
-int power_of_two_choices(int self) {
-    int a = pick_active_random(self);
-    if (a < 0) return -1;
-    int b = pick_active_random(self);
-    if (b < 0) return -1;
-
-    size_t la = sched_load(a);
-    size_t lb = sched_load(b);
-    return (lb > la) ? a : b; // 더 가벼운 쪽(통합 대상으로 좋음)
-}
-
+//CAS(ACTIVE,CONSOL)
 bool state_active_to_consol(int tid){
     CoreState expected = ACTIVE; 
     return core_state[tid].compare_exchange_strong(expected,CONSOLIDATING);
@@ -387,31 +365,87 @@ bool state_sleep_to_consol(int tid){
     return core_state[tid].compare_exchange_strong(expected,CONSOLIDATING);
 }
 
+
+int pick_active_random(int self, int also_exclude = -1) {
+    std::array<int, MAX_THREADS> cand{};
+    int n = 0;
+    for (int c = 0; c < MAX_THREADS; ++c) {
+        if (c == self || c == also_exclude) continue;
+        if (!schedulers[c]) continue;
+        if (core_state[c].load() != ACTIVE) continue;
+        cand[n++] = c;
+    }
+    if (n == 0) return -1;
+    std::uniform_int_distribution<int> dist(0, n - 1);
+    return cand[rand()%n];
+}
+
+
+int power_of_two_choices(int self) {
+    int a = pick_active_random(self);
+    if (a < 0) return -1;
+    int b = pick_active_random(self,a);
+    if (b < 0) return a;
+
+    size_t la = sched_load(a);
+    size_t lb = sched_load(b);
+    return (lb > la) ? a : b; // 더 가벼운 쪽(통합 대상으로 좋음)
+}
+
+int pick_and_lock_target_pow2(int self) {
+
+    int a = pick_active_random(self);
+    int b = pick_active_random(self, a);
+
+    if (a < 0 && b < 0) return -1;
+
+    // 더 가벼운 쪽을 먼저 시도
+    int first = a, second = b;
+    if (a >= 0 && b >= 0 && sched_load(b) < sched_load(a)) std::swap(first, second);
+
+    for (int t : {first, second}) {
+        if (t < 0) continue;
+        CoreState expected = ACTIVE;
+        if (core_state[t].compare_exchange_strong(
+                expected, CONSOLIDATING,
+                std::memory_order_acq_rel, std::memory_order_relaxed)) {
+            return t; // 락 성공
+        }
+	else{
+	  printf("CAS{%d}isNOTACTIVE\n",t);
+	}
+    }
+    return -1; // 둘 다 실패 → 호출부에서 재시도
+}
+
+//다른애한테 넘겨주고 나는 종료
 int core_consolidation(Scheduler& sched, int tid){
     printf("[%d] 0\n",tid);
     //0)
     if(!state_active_to_consol(tid)){
     	printf("[%d]CONSOLIDATING by someone\n",tid);
-        return -1; // ME = CONSOLIDATION
+        return -1; // Someone is giving me a job
     }
-
+    printf("[%d]ACTIVE->CONSOL\n",tid);
     //1)target
     int target = -1;
     //5회 시도
     for (int att = 0; att < 5; ++att) {
-        int cand = power_of_two_choices(tid);
-        if (cand < 0) break;
+        /*int cand = power_of_two_choices(tid);
+        if (cand < 0) continue;
         if (state_active_to_consol(cand)) {
             printf("[%d>%d]CONSOLIDATING\n",tid,cand);
             target = cand;
             break;// target = CONSOLIDATING 
-        }
+        }*/
+	target = pick_and_lock_target_pow2(tid);
+	if(target>=0) break;
     }
     if (target < 0) {
         printf("[%d]NO target\n",tid); 
-     // Consolidation Failed
-        core_state[tid]=CONSOLIDATED; 
-        return -1;
+        // Consolidation Failed
+        core_state[tid]=CONSOLIDATED;  //Failed. Instead of consolidation, Just Empty my work queue and sleep  
+        return -2;
     }
      
     printf("[%d] 2\n",tid);
@@ -428,20 +462,11 @@ int core_consolidation(Scheduler& sched, int tid){
 int load_balancing(int from_tid, int to_tid){
     Scheduler* to_sched   = schedulers[to_tid];
     Scheduler* from_sched = schedulers[from_tid];
-    //0)만약 to_thread가 없었으면 만들어줌.
-    if(!to_sched){
-	printf("No to_thread\n");
-    }
-    
-    if(!state_active_to_consol(from_tid)){
-    	//printf("[%d] failed\n",from_tid);
-        return -1; // ME = CONSOLIDATING
-    }
     printf("[%d>>%d]LoadBalancing<%d>\n",from_tid,to_tid,from_sched->work_queue.size());    
     if(!state_sleep_to_consol(to_tid)){
 	//이미 SLEEPING이 아님
     	printf("[%d]Not Sleeping\n",to_tid);
-	return -1;
+	return -2;
     }
     //std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
     std::lock_guard<std::mutex> lk_to(to_sched->mutex);
@@ -537,15 +562,14 @@ void master(Scheduler& sched, int tid, int coro_count) {
         if (++sched_count >= SCHEDULING_TICK) {
             sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
-            
 	    if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED) {
                 core_state[tid] = ACTIVE;
             } else {
                 // 3-1) 저부하이면 코어 정리 (core 0은 제외)
                 if (sched.is_idle() && tid != 0) {
                     printf("Core[%d] idle\n", tid);
-                    if (core_consolidation(sched, tid) != -1) {
-                        printf("[%d] sleep\n", tid);
+		    int cc = core_consolidation(sched,tid);
+                    if (cc >= 0) {
 			//대기중인 RDMA request 다 처리함
 			while(sched.blocked_num>0){
 				int next_id = poll_coroutine(tid);
@@ -554,24 +578,57 @@ void master(Scheduler& sched, int tid, int coro_count) {
 					sched.schedule();
 				}
 			}
+                        printf("[%d] sleep after CC\n", tid);
 			core_state[tid] = SLEEPING;
                         if (!g_stop.load()) {
                             sleep_thread(tid);    // 넘기고 잠자기
                             core_state[tid] = STARTED; // Wakeup 후 ACTIVE
                         }
                     }
+		    else if(cc==-2){
+			//TODO: 수정
+			//core consolidation 실패 > 스스로 pull 없이 request 전부 처리하고 잠에듬.
+			//state[tid] = CONSOLIDATED
+			while(sched.blocked_num>0 && work_queue.empty()){
+				int next_id = poll_coroutine(tid);
+				if(next_id>=0){
+					sched.wake_task(next_id);
+					sched.schedule();
+				}
+			}
+                        printf("[%d] sleep after CC\n", tid);
+			core_state[tid] = SLEEPING;
+                        if (!g_stop.load()) {
+                            sleep_thread(tid);    // 넘기고 잠자기
+                            core_state[tid] = STARTED; // Wakeup 후 ACTIVE
+                        }
+		    }
+		    else { //cc ==-1 someone is giving me his coroutine
+		    }	
                 }
                 // 3-2) SLO 위반 시 잠자는 스레드 깨워 이관
                 else if (!g_stop.load() && sched.detect_SLO_violation()) {
+		    //3-2-1) first, set my state to CONSOLIDATED to prevent consolidation
+		    if(state_active_to_consol(tid)){
+		    //3-2-2) try load balancing
                     for (int i = 0; i < MAX_THREADS; i++) {
                         if (i != tid && sleeping_flags[i]) {
-                            if (load_balancing(tid, i) != -1) {
+			    int lb=load_balancing(tid,i);
+                            if ( lb > 0) {
                                 wake_up_thread(i);//깨워
 				core_state[tid]=CONSOLIDATED;
+                                break;
                             }
-                            break;
+			    else if (lb ==-2){
+				// target is consolidated by some body
+				continue;
+			    }
                         }
                     }
+		    }
+		    else{//CAS failed- someone is consolidating me
+			
+		    }
                 }
             } // end else (core_state == ACTIVE)
     	    //3-3) Pull request
