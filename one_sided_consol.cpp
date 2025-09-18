@@ -620,25 +620,26 @@ void master(Scheduler& sched, int tid, int coro_count) {
 		    int target=-1;
                     for (int i = 0; i < MAX_THREADS; i++) {
                         if (i != tid && sleeping_flags[i]) {
-			    int lb=load_balancing(tid,i);
+		        	target = i;                
+			}
+                    }
+		   if(target ==-1){
+			
+		   }
+		 	    int lb=load_balancing(tid,target);
                             if ( lb >= 0) {
-                                wake_up_thread(i);//깨워
+                                wake_up_thread(target);//깨워
 				core_state[tid]=CONSOLIDATED;
-				target =i;
-                            	break;
+   				printf("[%d>>%d]LoadBalancingEnd\n",tid,target);
 			    }
 			    else if (lb ==-2){
 				// target is consolidated by some body
 				printf("[%d]load_balancing fail\n",tid);
 				core_state[tid]=ACTIVE;
-				break;
 			    }
-                        }
-                    }
-		    printf("[%d>>%d]LoadBalancingEnd\n",tid,target);
 		    }
 		    else{//CAS failed- someone is consolidating me
-			
+			printf("[%d]LoadBalance:CASfailed\n");
 		    }
                 }
             } // end else (core_state == ACTIVE)
