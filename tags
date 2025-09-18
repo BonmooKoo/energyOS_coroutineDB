@@ -5,7 +5,7 @@
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
 ACTIVE	core_consolidation.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
-ACTIVE	one_sided_consol.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
+ACTIVE	one_sided_consol.cpp	/^    ACTIVE,$/;"	e	enum:CoreState	file:
 ACTIVE	sched/sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING};$/;"	e	enum:CoreState	file:
 ACTIVE	sched/sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	e	enum:CoreState	file:
 ACTIVE	sched/sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
@@ -14,16 +14,16 @@ ALLOCSIZE	rdma_common.h	20;"	d
 ALLOCSIZE	rdma_verb.h	16;"	d
 CACHELINE_SIZE	mpmc_ring.hpp	12;"	d
 CONSOLIDATED	core_consolidation.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
-CONSOLIDATED	one_sided_consol.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
+CONSOLIDATED	one_sided_consol.cpp	/^    CONSOLIDATED$/;"	e	enum:CoreState	file:
 CONSOLIDATING	core_consolidation.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
-CONSOLIDATING	one_sided_consol.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
+CONSOLIDATING	one_sided_consol.cpp	/^    CONSOLIDATING,$/;"	e	enum:CoreState	file:
 CONSOLIDATING	sched/sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING};$/;"	e	enum:CoreState	file:
 CONSOLIDATING	sched/sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	e	enum:CoreState	file:
 CONSOLIDATING	sched/sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
 CXX	Makefile	/^CXX = g++$/;"	m
 CXXFLAGS	Makefile	/^CXXFLAGS = -std=gnu++17 -O3 \\$/;"	m
 CoreState	core_consolidation.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	g	file:
-CoreState	one_sided_consol.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	g	file:
+CoreState	one_sided_consol.cpp	/^enum CoreState$/;"	g	file:
 CoreState	sched/sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING};$/;"	g	file:
 CoreState	sched/sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	g	file:
 CoreState	sched/sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	g	file:
@@ -38,17 +38,17 @@ MAXCLIENT	rdma_server.cpp	11;"	d	file:
 MAXTHREAD	rdma_client.cpp	25;"	d	file:
 MAXTHREAD	rdma_verb.cpp	7;"	d	file:
 MAX_Q	core_consolidation.cpp	/^constexpr int   MAX_Q  = 64;     \/\/ Max Queue length$/;"	v
-MAX_Q	one_sided_consol.cpp	/^constexpr int   MAX_Q  = 64;     \/\/ Max Queue length$/;"	v
+MAX_Q	one_sided_consol.cpp	/^constexpr int MAX_Q = 64;   \/\/ Max Queue length$/;"	v
 MAX_Q	sched/sched_energy_3.cpp	/^constexpr int   MAX_Q  = 32;     \/\/ Max Queue length$/;"	v
 MAX_THREADS	core_consolidation.cpp	/^constexpr int   MAX_THREADS = 4;$/;"	v
-MAX_THREADS	one_sided_consol.cpp	/^constexpr int   MAX_THREADS = 4;$/;"	v
+MAX_THREADS	one_sided_consol.cpp	/^constexpr int MAX_THREADS = 4;$/;"	v
 MAX_THREADS	sched/sched_boost.cpp	/^constexpr int MAX_THREADS = 32;$/;"	v
 MAX_THREADS	sched/sched_energy_3.cpp	/^constexpr int   MAX_THREADS = 4;$/;"	v
 MAX_THREADS	sched/sched_ver1.cpp	/^constexpr int   MAX_THREADS            = 4;$/;"	v
 MIGRATION_MIN_BACKLOG	sched/sched_ver1.cpp	/^constexpr size_t MIGRATION_MIN_BACKLOG = 8;   \/\/ 이 이상일 때만 마이그레이션 시도$/;"	v
 MIGRATION_MIN_MOVE	sched/sched_ver1.cpp	/^constexpr size_t MIGRATION_MIN_MOVE    = 4;   \/\/ 이동 최소 개수(가능하면)$/;"	v
 MPMCQueue	core_consolidation.cpp	/^class MPMCQueue {$/;"	c	file:
-MPMCQueue	one_sided_consol.cpp	/^class MPMCQueue {$/;"	c	file:
+MPMCQueue	one_sided_consol.cpp	/^class MPMCQueue$/;"	c	file:
 MPMCQueue	sched/sched_energy_2.cpp	/^class MPMCQueue {$/;"	c	file:
 MPMCQueue	sched/sched_energy_3.cpp	/^class MPMCQueue {$/;"	c	file:
 MPMCQueue	sched/sched_energy_experiment.cpp	/^class MPMCQueue {$/;"	c	file:
@@ -58,26 +58,26 @@ N	zipf.hpp	/^    size_t N;$/;"	m	class:ZipfGenerator
 Next	zipf.cpp	/^size_t ZipfGenerator::Next() {$/;"	f	class:ZipfGenerator
 OBJS_COMMON	Makefile	/^OBJS_COMMON = $(SRCS_COMMON:.cpp=.o)$/;"	m
 OP_DELETE	core_consolidation.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
-OP_DELETE	one_sided_consol.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_DELETE	one_sided_consol.cpp	/^    OP_DELETE,$/;"	e	enum:RequestType	file:
 OP_DELETE	sched/sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
 OP_GET	core_consolidation.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
-OP_GET	one_sided_consol.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_GET	one_sided_consol.cpp	/^    OP_GET,$/;"	e	enum:RequestType	file:
 OP_GET	sched/sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
 OP_PUT	core_consolidation.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
-OP_PUT	one_sided_consol.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_PUT	one_sided_consol.cpp	/^    OP_PUT,$/;"	e	enum:RequestType	file:
 OP_PUT	sched/sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
 OP_RANGE	core_consolidation.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
-OP_RANGE	one_sided_consol.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_RANGE	one_sided_consol.cpp	/^    OP_RANGE,$/;"	e	enum:RequestType	file:
 OP_RANGE	sched/sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
 OP_UPDATE	core_consolidation.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
-OP_UPDATE	one_sided_consol.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
+OP_UPDATE	one_sided_consol.cpp	/^    OP_UPDATE$/;"	e	enum:RequestType	file:
 OP_UPDATE	sched/sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	e	enum:RequestType	file:
 QP_NUM	rdma_common.h	23;"	d
 Q_A	core_consolidation.cpp	/^constexpr double Q_A   = 0.2;    \/\/ Queue Down threshold-> Core consolidation$/;"	v
-Q_A	one_sided_consol.cpp	/^constexpr double Q_A   = 0.2;    \/\/ Queue Down threshold-> Core consolidation$/;"	v
+Q_A	one_sided_consol.cpp	/^constexpr double Q_A = 0.2; \/\/ Queue Down threshold-> Core consolidation$/;"	v
 Q_A	sched/sched_energy_3.cpp	/^constexpr double Q_A   = 0.3;    \/\/ Queue Down threshold-> Core consolidation$/;"	v
 Q_B	core_consolidation.cpp	/^constexpr double Q_B   = 0.9;    \/\/ Queue Up threshold -> Load Balancing$/;"	v
-Q_B	one_sided_consol.cpp	/^constexpr double Q_B   = 0.9;    \/\/ Queue Up threshold -> Load Balancing$/;"	v
+Q_B	one_sided_consol.cpp	/^constexpr double Q_B = 0.9; \/\/ Queue Up threshold -> Load Balancing$/;"	v
 Q_B	sched/sched_energy_3.cpp	/^constexpr double Q_B   = 0.7;    \/\/ Queue Up threshold -> Load Balancing$/;"	v
 RDMA_COMMON_H	rdma_common.h	2;"	d
 RDMA_Data	rdma_common.h	/^struct RDMA_Data {$/;"	s
@@ -86,40 +86,40 @@ RUN_BATCH_MAX	sched/sched_ver1.cpp	/^constexpr int   RUN_BATCH_MAX          = 16
 RdmaContext	rdma_common.h	/^  RdmaContext() : ctx(NULL), pd(NULL) {}$/;"	f	struct:RdmaContext
 RdmaContext	rdma_common.h	/^struct RdmaContext {$/;"	s
 Request	core_consolidation.cpp	/^struct Request {$/;"	s	file:
-Request	one_sided_consol.cpp	/^struct Request {$/;"	s	file:
+Request	one_sided_consol.cpp	/^struct Request$/;"	s	file:
 Request	request.h	/^struct Request {$/;"	s
 Request	sched/sched_energy_2.cpp	/^struct Request { uint64_t id; uint64_t ts_ns; };$/;"	s	file:
 Request	sched/sched_energy_3.cpp	/^struct Request {$/;"	s	file:
 Request	sched/sched_energy_experiment.cpp	/^struct Request { uint64_t id; uint64_t ts_ns; };$/;"	s	file:
 RequestType	core_consolidation.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	g	file:
-RequestType	one_sided_consol.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	g	file:
+RequestType	one_sided_consol.cpp	/^enum RequestType$/;"	g	file:
 RequestType	sched/sched_energy_3.cpp	/^enum RequestType {OP_PUT, OP_GET, OP_DELETE, OP_RANGE, OP_UPDATE};$/;"	g	file:
 SCHEDULING_TICK	core_consolidation.cpp	/^constexpr int   SCHEDULING_TICK=16;$/;"	v
-SCHEDULING_TICK	one_sided_consol.cpp	/^constexpr int   SCHEDULING_TICK=16;$/;"	v
+SCHEDULING_TICK	one_sided_consol.cpp	/^constexpr int SCHEDULING_TICK = 16;$/;"	v
 SERVER	rdma_verb.cpp	8;"	d	file:
 SERVER_NUM_KEY	keeper.cpp	/^const char *Keeper::SERVER_NUM_KEY = "serverNum";$/;"	m	class:Keeper	file:
 SERVER_NUM_KEY	keeper.h	/^  static const char *SERVER_NUM_KEY;$/;"	m	class:Keeper
 SIZEOFNODE	rdma_common.h	21;"	d
 SLEEPING	core_consolidation.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
-SLEEPING	one_sided_consol.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
+SLEEPING	one_sided_consol.cpp	/^    SLEEPING,$/;"	e	enum:CoreState	file:
 SLEEPING	sched/sched_energy_3.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING};$/;"	e	enum:CoreState	file:
 SLEEPING	sched/sched_ver1.cpp	/^enum CoreState { ACTIVE, CONSOLIDATING, SLEEPING };$/;"	e	enum:CoreState	file:
 SLEEPING	sched/sched_workqueue.cpp	/^enum CoreState {ACTIVE, CONSOLIDATING, SLEEPING};$/;"	e	enum:CoreState	file:
 SLEEP_HYSTERESIS_LOOPS	sched/sched_ver1.cpp	/^constexpr int   SLEEP_HYSTERESIS_LOOPS = 10000; \/\/ 슬립 전 최소 유휴 루프 수$/;"	v
 SLEEP_HYSTERESIS_MS	sched/sched_ver1.cpp	/^constexpr int   SLEEP_HYSTERESIS_MS    = 2;   \/\/ 슬립 전 최소 유휴 시간$/;"	v
 SLO_THRESHOLD_MS	core_consolidation.cpp	/^constexpr int   SLO_THRESHOLD_MS=5;$/;"	v
-SLO_THRESHOLD_MS	one_sided_consol.cpp	/^constexpr int   SLO_THRESHOLD_MS=5;$/;"	v
+SLO_THRESHOLD_MS	one_sided_consol.cpp	/^constexpr int SLO_THRESHOLD_MS = 5;$/;"	v
 SLO_THRESHOLD_MS	sched/sched_energy_3.cpp	/^constexpr int   SLO_THRESHOLD_MS=5;$/;"	v
 SLO_THRESHOLD_MS	sched/sched_ver1.cpp	/^constexpr int   SLO_THRESHOLD_MS       = 5;   \/\/ demo stub에서만 사용$/;"	v
 SLO_THRESHOLD_MS	sched/sched_workqueue.cpp	/^constexpr int SLO_THRESHOLD_MS=5;$/;"	v
 SPIN_YIELD_ROUNDS	sched/sched_ver1.cpp	/^constexpr int   SPIN_YIELD_ROUNDS      = 200; \/\/ 바쁜-폴링 억제: 초반 스핀\/양보 횟수$/;"	v
 SRCS_COMMON	Makefile	/^SRCS_COMMON = keeper.cpp rdma_verb.cpp rdma_common.cpp zipf.cpp$/;"	m
 STARTED	core_consolidation.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
-STARTED	one_sided_consol.cpp	/^enum CoreState {SLEEPING, ACTIVE, CONSOLIDATING, STARTED, CONSOLIDATED};$/;"	e	enum:CoreState	file:
+STARTED	one_sided_consol.cpp	/^    STARTED,$/;"	e	enum:CoreState	file:
 Scheduler	core_consolidation.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
 Scheduler	core_consolidation.cpp	/^class Scheduler {$/;"	c	file:
-Scheduler	one_sided_consol.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
-Scheduler	one_sided_consol.cpp	/^class Scheduler {$/;"	c	file:
+Scheduler	one_sided_consol.cpp	/^    Scheduler(int tid) : thread_id(tid)$/;"	f	class:Scheduler
+Scheduler	one_sided_consol.cpp	/^class Scheduler$/;"	c	file:
 Scheduler	sched/sched_boost.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
 Scheduler	sched/sched_boost.cpp	/^class Scheduler {$/;"	c	file:
 Scheduler	sched/sched_energy_3.cpp	/^    Scheduler(int tid) : thread_id(tid) {$/;"	f	class:Scheduler
@@ -131,8 +131,8 @@ Scheduler	sched/sched_workqueue.cpp	/^class Scheduler {$/;"	c	file:
 TOTALOP	rdma_client.cpp	26;"	d	file:
 Task	core_consolidation.cpp	/^    Task(CoroCall* src, int tid, int uid, int type=0)$/;"	f	struct:Task
 Task	core_consolidation.cpp	/^struct Task {$/;"	s	file:
-Task	one_sided_consol.cpp	/^    Task(CoroCall* src, int tid, int uid, int type=0)$/;"	f	struct:Task
-Task	one_sided_consol.cpp	/^struct Task {$/;"	s	file:
+Task	one_sided_consol.cpp	/^    Task(CoroCall *src, int tid, int uid, int type = 0)$/;"	f	struct:Task
+Task	one_sided_consol.cpp	/^struct Task$/;"	s	file:
 Task	sched/sched_boost.cpp	/^    Task(CoroCall* src, int tid, int uid)$/;"	f	struct:Task
 Task	sched/sched_boost.cpp	/^struct Task {$/;"	s	file:
 Task	sched/sched_energy_3.cpp	/^    Task(CoroCall* src, int tid, int uid, int type=0)$/;"	f	struct:Task
@@ -159,12 +159,12 @@ atomictime	rdma_verb.cpp	/^unsigned long atomictime[MAXTHREAD];$/;"	v
 backlog	sched/sched_ver1.cpp	/^  size_t backlog() {$/;"	f	class:Scheduler
 backlog_nolock	sched/sched_ver1.cpp	/^  size_t backlog_nolock() const { return work_queue.size() + wait_list.size(); }$/;"	f	class:Scheduler
 bind_cpu	core_consolidation.cpp	/^void bind_cpu(int cpu_num){$/;"	f
-bind_cpu	one_sided_consol.cpp	/^void bind_cpu(int cpu_num){$/;"	f
+bind_cpu	one_sided_consol.cpp	/^void bind_cpu(int cpu_num)$/;"	f
 bind_cpu	rdma_client.cpp	/^bind_cpu(int thread_id){$/;"	f
 bind_cpu	sched/sched_energy_3.cpp	/^void bind_cpu(int cpu_num){$/;"	f
 block_self	one_sided_consol.cpp	/^    void block_self(int utask_id) { block_hint = utask_id; }$/;"	f	class:Scheduler
-block_task	one_sided_consol.cpp	/^    void block_task(Task&& t) {$/;"	f	class:Scheduler
-blocked	one_sided_consol.cpp	/^    std::unordered_map<int,Task>blocked;$/;"	m	class:Scheduler	file:
+block_task	one_sided_consol.cpp	/^    void block_task(Task &&t)$/;"	f	class:Scheduler
+blocked	one_sided_consol.cpp	/^    std::unordered_map<int, Task> blocked;$/;"	m	class:Scheduler	file:
 buf_	mpmc_ring.hpp	/^  alignas(CACHELINE_SIZE) std::unique_ptr<Cell[]> buf_;$/;"	m	class:MPMCRing
 busy_for_us	sched/sched_energy_2.cpp	/^static inline void busy_for_us(int us){$/;"	f	file:
 busy_for_us	sched/sched_energy_experiment.cpp	/^void busy_for_us(int us){$/;"	f
@@ -193,7 +193,7 @@ completion_queue	rdma_server.cpp	/^struct ibv_cq* completion_queue;$/;"	v	typere
 connectMemcached	keeper.cpp	/^bool Keeper::connectMemcached() {$/;"	f	class:Keeper
 contexts	rdma_verb.cpp	/^struct RdmaContext contexts[MAXTHREAD];$/;"	v	typeref:struct:RdmaContext
 core_consolidation	core_consolidation.cpp	/^int core_consolidation(Scheduler& sched, int tid){$/;"	f
-core_consolidation	one_sided_consol.cpp	/^int core_consolidation(Scheduler& sched, int tid){$/;"	f
+core_consolidation	one_sided_consol.cpp	/^int core_consolidation(Scheduler &sched, int tid)$/;"	f
 core_consolidation	sched/sched_energy_3.cpp	/^int core_consolidation(Scheduler& sched, int tid){$/;"	f
 core_state	core_consolidation.cpp	/^std::atomic<CoreState> core_state[MAX_THREADS];$/;"	v
 core_state	one_sided_consol.cpp	/^std::atomic<CoreState> core_state[MAX_THREADS];$/;"	v
@@ -214,7 +214,7 @@ cs_num	rdma_client.cpp	/^int cs_num;$/;"	v
 ctx	rdma_common.h	/^  ibv_context *ctx;$/;"	m	struct:RdmaContext
 curServer	keeper.h	/^  uint16_t curServer;$/;"	m	class:Keeper
 cv_	core_consolidation.cpp	/^  std::condition_variable cv_;$/;"	m	class:MPMCQueue	file:
-cv_	one_sided_consol.cpp	/^  std::condition_variable cv_;$/;"	m	class:MPMCQueue	file:
+cv_	one_sided_consol.cpp	/^    std::condition_variable cv_;$/;"	m	class:MPMCQueue	file:
 cv_	sched/sched_energy_2.cpp	/^  std::condition_variable cv_;$/;"	m	class:MPMCQueue	file:
 cv_	sched/sched_energy_3.cpp	/^  std::condition_variable cv_;$/;"	m	class:MPMCQueue	file:
 cv_mutexes	core_consolidation.cpp	/^std::mutex cv_mutexes[MAX_THREADS];$/;"	v
@@ -232,7 +232,7 @@ data2	rdma_common.h	/^    uint64_t data2;$/;"	m	struct:RDMA_Data
 data3	rdma_common.h	/^    char data3[16];$/;"	m	struct:RDMA_Data
 destroy_Queue	rdma_common.cpp	/^bool destroy_Queue(struct ibv_qp* qp,struct ibv_cq* cq){$/;"	f
 detect_SLO_violation	core_consolidation.cpp	/^    bool detect_SLO_violation(){$/;"	f	class:Scheduler
-detect_SLO_violation	one_sided_consol.cpp	/^    bool detect_SLO_violation(){$/;"	f	class:Scheduler
+detect_SLO_violation	one_sided_consol.cpp	/^    bool detect_SLO_violation()$/;"	f	class:Scheduler
 detect_SLO_violation	sched/sched_energy_3.cpp	/^    bool detect_SLO_violation(){$/;"	f	class:Scheduler
 detect_SLO_violation	sched/sched_ver1.cpp	/^bool detect_SLO_violation(int \/*tid*\/) {$/;"	f
 detect_SLO_violation	sched/sched_workqueue.cpp	/^int detect_SLO_violation(int tid){$/;"	f
@@ -244,13 +244,13 @@ dst	rdma_server.cpp	/^char* dst;$/;"	v
 dst	rdma_verb.cpp	/^char* dst[MAXTHREAD];$/;"	v
 emplace	core_consolidation.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
 emplace	mpmc_ring.hpp	/^  bool emplace(Args&&... args) {$/;"	f	class:MPMCRing
-emplace	one_sided_consol.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
+emplace	one_sided_consol.cpp	/^    void emplace(Task &&task)$/;"	f	class:Scheduler
 emplace	sched/sched_boost.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
 emplace	sched/sched_energy_3.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
 emplace	sched/sched_ver1.cpp	/^  void emplace(Task&& task) { work_queue.push(std::move(task)); }$/;"	f	class:Scheduler
 emplace	sched/sched_workqueue.cpp	/^    void emplace(Task&& task) {$/;"	f	class:Scheduler
 enqueue_to_wait_list	core_consolidation.cpp	/^    void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
-enqueue_to_wait_list	one_sided_consol.cpp	/^    void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
+enqueue_to_wait_list	one_sided_consol.cpp	/^    void enqueue_to_wait_list(Task &&task)$/;"	f	class:Scheduler
 enqueue_to_wait_list	sched/sched_boost.cpp	/^    void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
 enqueue_to_wait_list	sched/sched_energy_3.cpp	/^    void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
 enqueue_to_wait_list	sched/sched_ver1.cpp	/^  void enqueue_to_wait_list(Task&& task) {$/;"	f	class:Scheduler
@@ -282,7 +282,7 @@ get_writes	rdma_verb.cpp	/^unsigned long get_writes(int thread){$/;"	f
 getdst	rdma_verb.cpp	/^char **getdst()$/;"	f
 getsrc	rdma_verb.cpp	/^char **getsrc()$/;"	f
 gettid	core_consolidation.cpp	/^pid_t gettid() {$/;"	f
-gettid	one_sided_consol.cpp	/^pid_t gettid() {$/;"	f
+gettid	one_sided_consol.cpp	/^pid_t gettid()$/;"	f
 gettid	sched/sched_boost.cpp	/^pid_t gettid() {$/;"	f
 gettid	sched/sched_energy_3.cpp	/^pid_t gettid() {$/;"	f
 gettid	sched/sched_ver1.cpp	/^pid_t gettid() { return static_cast<pid_t>(syscall(SYS_gettid)); }$/;"	f
@@ -292,18 +292,18 @@ gidIndex	rdma_common.h	/^  int gidIndex;$/;"	m	struct:RdmaContext
 id	sched/sched_energy_2.cpp	/^struct Request { uint64_t id; uint64_t ts_ns; };$/;"	m	struct:Request	file:
 id	sched/sched_energy_experiment.cpp	/^struct Request { uint64_t id; uint64_t ts_ns; };$/;"	m	struct:Request	file:
 is_done	core_consolidation.cpp	/^    bool is_done() const {$/;"	f	struct:Task
-is_done	one_sided_consol.cpp	/^    bool is_done() const {$/;"	f	struct:Task
+is_done	one_sided_consol.cpp	/^    bool is_done() const$/;"	f	struct:Task
 is_done	sched/sched_boost.cpp	/^    bool is_done() const {$/;"	f	struct:Task
 is_done	sched/sched_energy_3.cpp	/^    bool is_done() const {$/;"	f	struct:Task
 is_done	sched/sched_ver1.cpp	/^  bool is_done() const { return (source == nullptr) || !(*source); }$/;"	f	struct:Task
 is_done	sched/sched_workqueue.cpp	/^    bool is_done() const {$/;"	f	struct:Task
 is_empty	core_consolidation.cpp	/^    bool is_empty() {$/;"	f	class:Scheduler
-is_empty	one_sided_consol.cpp	/^    bool is_empty() {$/;"	f	class:Scheduler
+is_empty	one_sided_consol.cpp	/^    bool is_empty()$/;"	f	class:Scheduler
 is_empty	sched/sched_energy_3.cpp	/^    bool is_empty() {$/;"	f	class:Scheduler
 is_empty	sched/sched_ver1.cpp	/^  bool is_empty() {$/;"	f	class:Scheduler
 is_empty	sched/sched_workqueue.cpp	/^    bool is_empty() {$/;"	f	class:Scheduler
 is_idle	core_consolidation.cpp	/^    bool is_idle() {$/;"	f	class:Scheduler
-is_idle	one_sided_consol.cpp	/^    bool is_idle() {$/;"	f	class:Scheduler
+is_idle	one_sided_consol.cpp	/^    bool is_idle()$/;"	f	class:Scheduler
 is_idle	sched/sched_energy_3.cpp	/^    bool is_idle() {$/;"	f	class:Scheduler
 is_idle	sched/sched_ver1.cpp	/^  bool is_idle() {$/;"	f	class:Scheduler
 is_idle	sched/sched_workqueue.cpp	/^    bool is_idle() {$/;"	f	class:Scheduler
@@ -314,15 +314,15 @@ key	sched/sched_ver1.cpp	/^  uint64_t key = 0;$/;"	m	struct:Task	file:
 key	sched/sched_workqueue.cpp	/^    uint64_t key;$/;"	m	struct:Task	file:
 lid	rdma_common.h	/^  uint16_t lid;$/;"	m	struct:RdmaContext
 load_balancing	core_consolidation.cpp	/^int load_balancing(int from_tid, int to_tid){$/;"	f
-load_balancing	one_sided_consol.cpp	/^int load_balancing(int from_tid, int to_tid){$/;"	f
+load_balancing	one_sided_consol.cpp	/^int load_balancing(int from_tid, int to_tid)$/;"	f
 load_balancing	sched/sched_energy_3.cpp	/^int load_balancing(Scheduler& sched, int tid){$/;"	f
 m_	core_consolidation.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
-m_	one_sided_consol.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
+m_	one_sided_consol.cpp	/^    mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
 m_	sched/sched_energy_2.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
 m_	sched/sched_energy_3.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
 m_	sched/sched_energy_experiment.cpp	/^  mutable std::mutex m_;$/;"	m	class:MPMCQueue	file:
 main	core_consolidation.cpp	/^int main() {$/;"	f
-main	one_sided_consol.cpp	/^int main() {$/;"	f
+main	one_sided_consol.cpp	/^int main()$/;"	f
 main	rdma_client.cpp	/^main (int argc, char **argv)$/;"	f
 main	rdma_server.cpp	/^int main(int argc,char* argv[]){$/;"	f
 main	sched/sched_boost.cpp	/^int main() {$/;"	f
@@ -336,7 +336,7 @@ make_worker	sched/sched_energy_experiment.cpp	/^void make_worker(ThreadCtx& ctx)
 make_worker	sched/sched_ver1.cpp	/^void make_worker(Scheduler& sched, int tid, int coroid, int steps = 5) {$/;"	f
 mask_	mpmc_ring.hpp	/^  size_t mask_; \/\/ cap_ - 1 (power-of-two)$/;"	m	class:MPMCRing
 master	core_consolidation.cpp	/^void master(Scheduler& sched, int tid, int coro_count) {$/;"	f
-master	one_sided_consol.cpp	/^void master(Scheduler& sched, int tid, int coro_count) {$/;"	f
+master	one_sided_consol.cpp	/^void master(Scheduler &sched, int tid, int coro_count)$/;"	f
 master	rdma_coroutine.cpp	/^thread_local CoroCall master;$/;"	v
 master	sched/sched_boost.cpp	/^void master(Scheduler& sched, int tid, int coro_count) {$/;"	f
 master	sched/sched_energy_3.cpp	/^void master(Scheduler& sched, int tid, int coro_count) {$/;"	f
@@ -351,7 +351,7 @@ memc	keeper.h	/^  memcached_st *memc;$/;"	m	class:Keeper
 move_waitlist_half	sched/sched_ver1.cpp	/^int move_waitlist_half(int from_tid, int to_tid) {$/;"	f
 move_waitlist_some	sched/sched_ver1.cpp	/^int move_waitlist_some(int from_tid, int to_tid, size_t want) {$/;"	f
 mutex	core_consolidation.cpp	/^    std::mutex mutex;		    \/\/Mutex for Wait list$/;"	m	class:Scheduler	file:
-mutex	one_sided_consol.cpp	/^    std::mutex mutex;		    \/\/Mutex for Wait list$/;"	m	class:Scheduler	file:
+mutex	one_sided_consol.cpp	/^    std::mutex mutex;            \/\/ Mutex for Wait list$/;"	m	class:Scheduler	file:
 mutex	sched/sched_boost.cpp	/^    std::mutex mutex;$/;"	m	class:Scheduler	file:
 mutex	sched/sched_energy_3.cpp	/^    std::mutex mutex;		    \/\/Mutex for Wait list$/;"	m	class:Scheduler	file:
 mutex	sched/sched_ver1.cpp	/^  std::mutex       mutex;$/;"	m	class:Scheduler	file:
@@ -361,18 +361,20 @@ myNodeID	keeper.h	/^  uint16_t myNodeID;$/;"	m	class:Keeper
 myPort	keeper.h	/^  uint16_t myPort;$/;"	m	class:Keeper
 next_pow2	mpmc_ring.hpp	/^  static size_t next_pow2(size_t x) {$/;"	f	class:MPMCRing
 noexcept	core_consolidation.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
-noexcept	one_sided_consol.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
+noexcept	one_sided_consol.cpp	/^    Task(Task &&other) noexcept$/;"	m	struct:Task	file:
 noexcept	sched/sched_boost.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
 noexcept	sched/sched_energy_3.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
 noexcept	sched/sched_ver1.cpp	/^  Task(Task&& other) noexcept$/;"	m	struct:Task	file:
 noexcept	sched/sched_workqueue.cpp	/^    Task(Task&& other) noexcept$/;"	m	struct:Task	file:
+now_ns	one_sided_consol.cpp	/^static inline uint64_t now_ns()$/;"	f	file:
 num_thread	sched/sched_ver1.cpp	/^static int num_thread = 2;$/;"	v	file:
 num_thread	sched/sched_workqueue.cpp	/^int num_thread;$/;"	v
 padd	rdma_verb.h	/^    char padd[4];$/;"	m	struct:serverINFO
 pd	rdma_common.h	/^  ibv_pd *pd;$/;"	m	struct:RdmaContext
 pick_active_random	core_consolidation.cpp	/^int pick_active_random(int self, int also_exclude = -1) {$/;"	f
-pick_active_random	one_sided_consol.cpp	/^int pick_active_random(int self, int also_exclude = -1) {$/;"	f
+pick_active_random	one_sided_consol.cpp	/^int pick_active_random(int self, int also_exclude = -1)$/;"	f
 pick_active_random	sched/sched_energy_3.cpp	/^int pick_active_random(int self, int also_exclude = -1) {$/;"	f
+pick_and_lock_target_pow2	one_sided_consol.cpp	/^int pick_and_lock_target_pow2(int self)$/;"	f
 pin_to_cpu	sched/sched_energy_2.cpp	/^static inline void pin_to_cpu(int cpu){$/;"	f	file:
 pin_to_cpu	sched/sched_energy_experiment.cpp	/^void pin_to_cpu(int cpu){$/;"	f
 pollOnce	rdma_verb.cpp	/^int pollOnce(ibv_cq *cq, int pollNumber, struct ibv_wc *wc) {$/;"	f
@@ -383,35 +385,35 @@ port	rdma_common.h	/^  uint8_t port;$/;"	m	struct:RdmaContext
 post_coroutine_to_awake	sched/sched_energy_3.cpp	/^int post_coroutine_to_awake(int from_tid, int to_tid){$/;"	f
 post_coroutine_to_awake	sched/sched_workqueue.cpp	/^int post_coroutine_to_awake(int from_tid,int to_tid){$/;"	f
 post_mycoroutines_to	core_consolidation.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
-post_mycoroutines_to	one_sided_consol.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
+post_mycoroutines_to	one_sided_consol.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid)$/;"	f
 post_mycoroutines_to	sched/sched_boost.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
 post_mycoroutines_to	sched/sched_energy_3.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
 post_mycoroutines_to	sched/sched_workqueue.cpp	/^int post_mycoroutines_to(int from_tid, int to_tid) {$/;"	f
 power_of_two_choices	core_consolidation.cpp	/^int power_of_two_choices(int self) {$/;"	f
-power_of_two_choices	one_sided_consol.cpp	/^int power_of_two_choices(int self) {$/;"	f
+power_of_two_choices	one_sided_consol.cpp	/^int power_of_two_choices(int self)$/;"	f
 power_of_two_choices	sched/sched_energy_3.cpp	/^int power_of_two_choices(int self) {$/;"	f
 print_worker	core_consolidation.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
-print_worker	one_sided_consol.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
+print_worker	one_sided_consol.cpp	/^void print_worker(Scheduler &sched, int tid, int coroid)$/;"	f
 print_worker	sched/sched_energy_3.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
 print_worker	sched/sched_workqueue.cpp	/^void print_worker(Scheduler& sched, int tid, int coroid) {$/;"	f
 process_request_on_worker	core_consolidation.cpp	/^static void process_request_on_worker(const Request& r, int tid, int coroid) {$/;"	f	file:
-process_request_on_worker	one_sided_consol.cpp	/^static void process_request_on_worker(const Request& r, int tid, int coroid) {$/;"	f	file:
+process_request_on_worker	one_sided_consol.cpp	/^static void process_request_on_worker(const Request &r, int tid, int coroid)$/;"	f	file:
 process_request_on_worker	sched/sched_energy_3.cpp	/^static void process_request_on_worker(const Request& r, int tid, int coroid) {$/;"	f	file:
 producer_rps	sched/sched_energy_2.cpp	/^void producer_rps(int rps, int seconds){$/;"	f
 producer_rps	sched/sched_energy_experiment.cpp	/^void producer_rps(int rps, int seconds){$/;"	f
 pump_external_requests_into	core_consolidation.cpp	/^static inline void pump_external_requests_into(Scheduler& sched, int burst = 32) {$/;"	f	file:
-pump_external_requests_into	one_sided_consol.cpp	/^static inline void pump_external_requests_into(Scheduler& sched, int burst = 32) {$/;"	f	file:
+pump_external_requests_into	one_sided_consol.cpp	/^static inline void pump_external_requests_into(Scheduler &sched, int burst = 32)$/;"	f	file:
 pump_external_requests_into	sched/sched_energy_3.cpp	/^static inline void pump_external_requests_into(Scheduler& sched, int burst = 32) {$/;"	f	file:
 push	core_consolidation.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
-push	one_sided_consol.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
+push	one_sided_consol.cpp	/^    void push(Request &&r)$/;"	f	class:MPMCQueue
 push	sched/sched_energy_2.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
 push	sched/sched_energy_3.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
 push	sched/sched_energy_experiment.cpp	/^  void push(Request&& r){$/;"	f	class:MPMCQueue
 push_bulk	core_consolidation.cpp	/^  void push_bulk(std::deque<Request>& in) {$/;"	f	class:MPMCQueue
-push_bulk	one_sided_consol.cpp	/^  void push_bulk(std::deque<Request>& in) {$/;"	f	class:MPMCQueue
+push_bulk	one_sided_consol.cpp	/^    void push_bulk(std::deque<Request> &in)$/;"	f	class:MPMCQueue
 push_bulk	sched/sched_energy_3.cpp	/^  void push_bulk(std::deque<Request>& in) {$/;"	f	class:MPMCQueue
 q_	core_consolidation.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
-q_	one_sided_consol.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
+q_	one_sided_consol.cpp	/^    std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
 q_	sched/sched_energy_2.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
 q_	sched/sched_energy_3.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
 q_	sched/sched_energy_experiment.cpp	/^  std::deque<Request> q_;$/;"	m	class:MPMCQueue	file:
@@ -435,7 +437,7 @@ read_lat	rdma_client.cpp	/^uint64_t read_lat[MAXTHREAD][TOTALOP\/MAXTHREAD]={0};
 reads	rdma_verb.cpp	/^unsigned long reads[MAXTHREAD];$/;"	v
 readtime	rdma_verb.cpp	/^unsigned long readtime[MAXTHREAD];$/;"	v
 resume	core_consolidation.cpp	/^    void resume(Scheduler* sched) {$/;"	f	struct:Task
-resume	one_sided_consol.cpp	/^    void resume(Scheduler* sched) {$/;"	f	struct:Task
+resume	one_sided_consol.cpp	/^    void resume(Scheduler *sched)$/;"	f	struct:Task
 resume	sched/sched_boost.cpp	/^    void resume() {$/;"	f	struct:Task
 resume	sched/sched_energy_3.cpp	/^    void resume() {$/;"	f	struct:Task
 resume	sched/sched_ver1.cpp	/^  void resume() {$/;"	f	struct:Task
@@ -446,17 +448,17 @@ rx_queue	core_consolidation.cpp	/^    MPMCQueue rx_queue;$/;"	m	class:Scheduler	
 rx_queue	one_sided_consol.cpp	/^    MPMCQueue rx_queue;$/;"	m	class:Scheduler	file:
 rx_queue	sched/sched_energy_3.cpp	/^    MPMCQueue rx_queue;$/;"	m	class:Scheduler	file:
 sched_load	core_consolidation.cpp	/^int sched_load(int c){$/;"	f
-sched_load	one_sided_consol.cpp	/^int sched_load(int c){$/;"	f
+sched_load	one_sided_consol.cpp	/^int sched_load(int c)$/;"	f
 sched_load	sched/sched_energy_3.cpp	/^int sched_load(int c){$/;"	f
 schedule	core_consolidation.cpp	/^    void schedule() {$/;"	f	class:Scheduler
-schedule	one_sided_consol.cpp	/^    void schedule() {$/;"	f	class:Scheduler
+schedule	one_sided_consol.cpp	/^    void schedule()$/;"	f	class:Scheduler
 schedule	sched/sched_boost.cpp	/^    void schedule() {$/;"	f	class:Scheduler
 schedule	sched/sched_energy_3.cpp	/^    void schedule() {$/;"	f	class:Scheduler
 schedule	sched/sched_workqueue.cpp	/^    void schedule() {$/;"	f	class:Scheduler
 schedule_once	sched/sched_ver1.cpp	/^  bool schedule_once() {$/;"	f	class:Scheduler
 scheduler_loop	sched/sched_energy_experiment.cpp	/^void scheduler_loop(ThreadCtx& ctx){$/;"	f
 schedulers	core_consolidation.cpp	/^Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v
-schedulers	one_sided_consol.cpp	/^Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v
+schedulers	one_sided_consol.cpp	/^Scheduler *schedulers[MAX_THREADS] = {nullptr};$/;"	v
 schedulers	sched/sched_boost.cpp	/^Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v
 schedulers	sched/sched_energy_3.cpp	/^Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v
 schedulers	sched/sched_ver1.cpp	/^static Scheduler* schedulers[MAX_THREADS] = {nullptr};$/;"	v	file:
@@ -468,21 +470,21 @@ service_us	sched/sched_energy_2.cpp	/^  int service_us;$/;"	m	struct:ThreadCtx	f
 service_us	sched/sched_energy_2.cpp	/^  int service_us;$/;"	m	struct:ThreadWorkerCfg	file:
 service_us	sched/sched_energy_experiment.cpp	/^  int service_us;$/;"	m	struct:ThreadCtx	file:
 set_type	core_consolidation.cpp	/^    void set_type(int type){ task_type=type; }$/;"	f	struct:Task
-set_type	one_sided_consol.cpp	/^    void set_type(int type){ task_type=type; }$/;"	f	struct:Task
+set_type	one_sided_consol.cpp	/^    void set_type(int type) { task_type = type; }$/;"	f	struct:Task
 set_type	sched/sched_energy_3.cpp	/^    void set_type(int type){ task_type=type; }$/;"	f	struct:Task
 set_type	sched/sched_ver1.cpp	/^  void set_type(int type) { task_type = type; }$/;"	f	struct:Task
 set_type	sched/sched_workqueue.cpp	/^    void set_type(int type){$/;"	f	struct:Task
 sigint_handler	rdma_client.cpp	/^sigint_handler (int sig)$/;"	f
 sigint_handler	rdma_server.cpp	/^void sigint_handler(int sig) {$/;"	f
 size	core_consolidation.cpp	/^  size_t size() const {$/;"	f	class:MPMCQueue
-size	one_sided_consol.cpp	/^  size_t size() const {$/;"	f	class:MPMCQueue
+size	one_sided_consol.cpp	/^    size_t size() const$/;"	f	class:MPMCQueue
 size	sched/sched_energy_2.cpp	/^  size_t size() const {$/;"	f	class:MPMCQueue
 size	sched/sched_energy_3.cpp	/^  size_t size() const {$/;"	f	class:MPMCQueue
 size	sched/sched_energy_experiment.cpp	/^  size_t size() const {$/;"	f	class:MPMCQueue
 size_approx	mpmc_ring.hpp	/^  size_t size_approx() const {$/;"	f	class:MPMCRing
 skew	zipf.hpp	/^    double skew;$/;"	m	class:ZipfGenerator
 sleep_thread	core_consolidation.cpp	/^void sleep_thread(int tid){$/;"	f
-sleep_thread	one_sided_consol.cpp	/^void sleep_thread(int tid){$/;"	f
+sleep_thread	one_sided_consol.cpp	/^void sleep_thread(int tid)$/;"	f
 sleep_thread	sched/sched_energy_3.cpp	/^void sleep_thread(int tid){$/;"	f
 sleep_thread	sched/sched_ver1.cpp	/^void sleep_thread(int tid) {$/;"	f
 sleep_thread	sched/sched_workqueue.cpp	/^void sleep_thread(int tid){$/;"	f
@@ -493,7 +495,7 @@ sleeping_flags	sched/sched_ver1.cpp	/^static std::atomic<bool> sleeping_flags[MA
 sleeping_flags	sched/sched_workqueue.cpp	/^std::atomic<bool> sleeping_flags[MAX_THREADS];$/;"	v
 smallread_lat	rdma_client.cpp	/^uint64_t smallread_lat[MAXTHREAD][TOTALOP\/MAXTHREAD]={0};$/;"	v
 source	core_consolidation.cpp	/^    CoroCall* source = nullptr; $/;"	m	struct:Task	file:
-source	one_sided_consol.cpp	/^    CoroCall* source = nullptr; $/;"	m	struct:Task	file:
+source	one_sided_consol.cpp	/^    CoroCall *source = nullptr;$/;"	m	struct:Task	file:
 source	sched/sched_boost.cpp	/^    CoroCall* source = nullptr;  \/\/ 또는 CoroYield* depending on role$/;"	m	struct:Task	file:
 source	sched/sched_energy_3.cpp	/^    CoroCall* source = nullptr; $/;"	m	struct:Task	file:
 source	sched/sched_ver1.cpp	/^  CoroCall* source = nullptr;$/;"	m	struct:Task	file:
@@ -503,18 +505,18 @@ start_time	core_consolidation.cpp	/^    uint64_t start_time;$/;"	m	struct:Reques
 start_time	one_sided_consol.cpp	/^    uint64_t start_time;$/;"	m	struct:Request	file:
 start_time	sched/sched_energy_3.cpp	/^    uint64_t start_time;$/;"	m	struct:Request	file:
 state_active_to_consol	core_consolidation.cpp	/^bool state_active_to_consol(int tid){$/;"	f
-state_active_to_consol	one_sided_consol.cpp	/^bool state_active_to_consol(int tid){$/;"	f
+state_active_to_consol	one_sided_consol.cpp	/^bool state_active_to_consol(int tid)$/;"	f
 state_active_to_consol	sched/sched_energy_3.cpp	/^bool state_active_to_consol(int tid){$/;"	f
 state_sleep_to_consol	core_consolidation.cpp	/^bool state_sleep_to_consol(int tid){$/;"	f
-state_sleep_to_consol	one_sided_consol.cpp	/^bool state_sleep_to_consol(int tid){$/;"	f
+state_sleep_to_consol	one_sided_consol.cpp	/^bool state_sleep_to_consol(int tid)$/;"	f
 steal_all	core_consolidation.cpp	/^  void steal_all(std::deque<Request>& out) {$/;"	f	class:MPMCQueue
-steal_all	one_sided_consol.cpp	/^  void steal_all(std::deque<Request>& out) {$/;"	f	class:MPMCQueue
+steal_all	one_sided_consol.cpp	/^    void steal_all(std::deque<Request> &out)$/;"	f	class:MPMCQueue
 steal_all	sched/sched_energy_3.cpp	/^  void steal_all(std::deque<Request>& out) {$/;"	f	class:MPMCQueue
 task_type	sched/sched_ver1.cpp	/^  int task_type = 0;$/;"	m	struct:Task	file:
 task_type	sched/sched_workqueue.cpp	/^    int task_type;$/;"	m	struct:Task	file:
 test_read	rdma_client.cpp	/^test_read (int id)$/;"	f
 thread_func	core_consolidation.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
-thread_func	one_sided_consol.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
+thread_func	one_sided_consol.cpp	/^void thread_func(int tid, int coro_count)$/;"	f
 thread_func	sched/sched_boost.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
 thread_func	sched/sched_energy_3.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
 thread_func	sched/sched_ver1.cpp	/^void thread_func(int tid, int coro_count) {$/;"	f
@@ -538,7 +540,7 @@ thread_worker	sched/sched_energy_2.cpp	/^void thread_worker(ThreadWorkerCfg cfg)
 threadcount	rdma_client.cpp	/^int threadcount;$/;"	v
 tid	sched/sched_energy_experiment.cpp	/^  int tid;$/;"	m	struct:ThreadCtx	file:
 timed_producer	core_consolidation.cpp	/^void timed_producer(int num_thread, int qps, int durationSec) {$/;"	f
-timed_producer	one_sided_consol.cpp	/^void timed_producer(int num_thread, int qps, int durationSec) {$/;"	f
+timed_producer	one_sided_consol.cpp	/^void timed_producer(int num_thread, int qps, int durationSec)$/;"	f
 timed_producer	sched/sched_energy_3.cpp	/^void timed_producer(int num_thread, int qps, int durationSec) {$/;"	f
 timestamp	request.h	/^    uint64_t timestamp;$/;"	m	struct:Request
 tl_did_work	sched/sched_energy_2.cpp	/^static thread_local bool tl_did_work = false;$/;"	v	file:
@@ -547,7 +549,7 @@ try_offload_coroutine	sched/sched_ver1.cpp	/^bool try_offload_coroutine(Schedule
 try_offload_coroutine	sched/sched_workqueue.cpp	/^bool try_offload_coroutine(Scheduler& sched, int tid){$/;"	f
 try_pop	core_consolidation.cpp	/^  bool try_pop(Request& out){$/;"	f	class:MPMCQueue
 try_pop	mpmc_ring.hpp	/^  bool try_pop(T& out) {$/;"	f	class:MPMCRing
-try_pop	one_sided_consol.cpp	/^  bool try_pop(Request& out){$/;"	f	class:MPMCQueue
+try_pop	one_sided_consol.cpp	/^    bool try_pop(Request &out)$/;"	f	class:MPMCQueue
 try_pop	sched/sched_energy_2.cpp	/^  bool try_pop(Request& out){$/;"	f	class:MPMCQueue
 try_pop	sched/sched_energy_3.cpp	/^  bool try_pop(Request& out){$/;"	f	class:MPMCQueue
 try_pop	sched/sched_energy_experiment.cpp	/^  bool try_pop(Request& out){$/;"	f	class:MPMCQueue
@@ -563,29 +565,29 @@ utask_id	sched/sched_boost.cpp	/^    int utask_id;$/;"	m	struct:Task	file:
 utask_id	sched/sched_ver1.cpp	/^  int utask_id = -1;$/;"	m	struct:Task	file:
 utask_id	sched/sched_workqueue.cpp	/^    int utask_id;$/;"	m	struct:Task	file:
 value	core_consolidation.cpp	/^          key(other.key), value(other.value) {$/;"	f	struct:Task
-value	one_sided_consol.cpp	/^          key(other.key), value(other.value) {$/;"	f	struct:Task
+value	one_sided_consol.cpp	/^          key(other.key), value(other.value)$/;"	f	struct:Task
 value	request.h	/^    uint64_t value;$/;"	m	struct:Request
 value	sched/sched_energy_3.cpp	/^          key(other.key), value(other.value) {$/;"	f	struct:Task
 value	sched/sched_ver1.cpp	/^        value(other.value) {$/;"	f	struct:Task
 value	sched/sched_ver1.cpp	/^  uint64_t value = 0;$/;"	m	struct:Task	file:
 value	sched/sched_workqueue.cpp	/^    uint64_t value;$/;"	m	struct:Task	file:
 wait_list	core_consolidation.cpp	/^    std::queue<Task> wait_list;      \/\/ Wait list (코루틴 대기)$/;"	m	class:Scheduler	file:
-wait_list	one_sided_consol.cpp	/^    std::queue<Task> wait_list;      \/\/ Wait list (코루틴 대기)$/;"	m	class:Scheduler	file:
+wait_list	one_sided_consol.cpp	/^    std::queue<Task> wait_list;  \/\/ Wait list (코루틴 대기)$/;"	m	class:Scheduler	file:
 wait_list	sched/sched_boost.cpp	/^    std::queue<Task> wait_list;$/;"	m	class:Scheduler	file:
 wait_list	sched/sched_energy_3.cpp	/^    std::queue<Task> wait_list;      \/\/ Wait list (코루틴 대기)$/;"	m	class:Scheduler	file:
 wait_list	sched/sched_ver1.cpp	/^  std::queue<Task> wait_list;$/;"	m	class:Scheduler	file:
 wait_list	sched/sched_workqueue.cpp	/^    std::queue<Task> wait_list;       \/\/ Wait list$/;"	m	class:Scheduler	file:
 wake_all_threads	core_consolidation.cpp	/^void wake_all_threads(int num_thread) {$/;"	f
-wake_all_threads	one_sided_consol.cpp	/^void wake_all_threads(int num_thread) {$/;"	f
+wake_all_threads	one_sided_consol.cpp	/^void wake_all_threads(int num_thread)$/;"	f
 wake_all_threads	sched/sched_energy_3.cpp	/^void wake_all_threads(int num_thread) {$/;"	f
-wake_task	one_sided_consol.cpp	/^    bool wake_task(int uid) {$/;"	f	class:Scheduler
+wake_task	one_sided_consol.cpp	/^    bool wake_task(int uid)$/;"	f	class:Scheduler
 wake_up_thread	core_consolidation.cpp	/^void wake_up_thread(int tid){$/;"	f
-wake_up_thread	one_sided_consol.cpp	/^void wake_up_thread(int tid){$/;"	f
+wake_up_thread	one_sided_consol.cpp	/^void wake_up_thread(int tid)$/;"	f
 wake_up_thread	sched/sched_energy_3.cpp	/^void wake_up_thread(int tid){$/;"	f
 wake_up_thread	sched/sched_ver1.cpp	/^void wake_up_thread(int tid) {$/;"	f
 wake_up_thread	sched/sched_workqueue.cpp	/^void wake_up_thread(int tid){$/;"	f
 work_queue	core_consolidation.cpp	/^    std::queue<Task> work_queue;     \/\/ Work Queue (코루틴 스케줄)$/;"	m	class:Scheduler	file:
-work_queue	one_sided_consol.cpp	/^    std::queue<Task> work_queue;     \/\/ Work Queue (코루틴 스케줄)$/;"	m	class:Scheduler	file:
+work_queue	one_sided_consol.cpp	/^    std::queue<Task> work_queue; \/\/ Work Queue (코루틴 스케줄)$/;"	m	class:Scheduler	file:
 work_queue	sched/sched_energy_3.cpp	/^    std::queue<Task> work_queue;     \/\/ Work Queue (코루틴 스케줄)$/;"	m	class:Scheduler	file:
 work_queue	sched/sched_ver1.cpp	/^  std::queue<Task> work_queue;$/;"	m	class:Scheduler	file:
 work_queue	sched/sched_workqueue.cpp	/^    std::queue<Task> work_queue; \/\/ Work Queue$/;"	m	class:Scheduler	file:
@@ -597,7 +599,7 @@ writetime	rdma_verb.cpp	/^unsigned long writetime[MAXTHREAD];$/;"	v
 ~Keeper	keeper.cpp	/^Keeper::~Keeper() {$/;"	f	class:Keeper
 ~MPMCRing	mpmc_ring.hpp	/^  ~MPMCRing() {$/;"	f	class:MPMCRing
 ~Task	core_consolidation.cpp	/^    ~Task() {$/;"	f	struct:Task
-~Task	one_sided_consol.cpp	/^    ~Task() {$/;"	f	struct:Task
+~Task	one_sided_consol.cpp	/^    ~Task()$/;"	f	struct:Task
 ~Task	sched/sched_boost.cpp	/^    ~Task() {$/;"	f	struct:Task
 ~Task	sched/sched_energy_3.cpp	/^    ~Task() {$/;"	f	struct:Task
 ~Task	sched/sched_ver1.cpp	/^  ~Task() { cleanup(); }$/;"	f	struct:Task

@@ -665,7 +665,7 @@ void master(Scheduler &sched, int tid, int coro_count)
         sched.schedule();
         if (++sched_count >= SCHEDULING_TICK)
         {
-            // printf("[%d]Status=%d\n",tid,core_state[tid].load());
+            //printf("[%d]Status=%d\n",tid,core_state[tid].load());
             sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
             if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED)
@@ -683,14 +683,9 @@ void master(Scheduler &sched, int tid, int coro_count)
                     if (cc >= 0)
                     {
                         // 대기중인 RDMA request 다 처리함
-                        while (sched.blocked_num > 0)
+                        while (sched.blocked_num > 0 | sched.rx_queue.size()>0 )
                         {
-                            int next_id = poll_coroutine(tid);
-                            if (next_id >= 0)
-                            {
-                                sched.wake_task(next_id);
-                                sched.schedule();
-                            }
+                           sched.schedule();
                         }
                         printf("[%d] sleep after CC\n", tid);
                         core_state[tid] = SLEEPING;
@@ -709,18 +704,10 @@ void master(Scheduler &sched, int tid, int coro_count)
                         int budget = 4096;
                         while (sched.blocked_num > 0 || sched.work_queue.empty() || budget-- > 0 || sched.rx_queue.size() > 0)
                         {
-                            int next_id = poll_coroutine(tid);
-                            if (next_id >= 0)
-                            {
-                                sched.wake_task(next_id);
                                 sched.schedule();
-                            }
-                            else
-                            {
-                                break; // 더 이상 깰 코루틴 없음
-                            }
                         }
                         printf("[%d]Work n Sleep\n", tid);
+					    core_state[tid]=SLEEPING;
                         if (!g_stop.load())
                         {
                             sleep_thread(tid);         // 넘기고 잠
@@ -734,6 +721,7 @@ void master(Scheduler &sched, int tid, int coro_count)
                 // 3-2) SLO 위반 시 잠자는 스레드 깨워 이관
                 else if (!g_stop.load() && sched.detect_SLO_violation())
                 {
+		    		printf("[%d]DetectSLOviolation\n",tid);
                     // 3-2-1) first, set my state to CONSOLIDATED to prevent consolidation
                     if (state_active_to_consol(tid))
                     {
@@ -744,28 +732,31 @@ void master(Scheduler &sched, int tid, int coro_count)
                             if (i != tid && sleeping_flags[i])
                             {
                                 target = i;
+								break;
                             }
                         }
                         if (target == -1)
                         {
+							printf("[%d]No target to LoadBalance\n",tid);
+							core_state[tid] = CONSOLIDATED;
                         }
+					else{
                         int lb = load_balancing(tid, target);
-                        if (lb >= 0)
-                        {
-                            wake_up_thread(target); // 깨워
-                            core_state[tid] = CONSOLIDATED;
-                            printf("[%d>>%d]LoadBalancingEnd\n", tid, target);
-                        }
-                        else if (lb == -2)
-                        {
-                            // target is consolidated by some body
+                        if (lb >= 0){
+                          	wake_up_thread(target); // 깨워
+	                        core_state[tid] = CONSOLIDATED;
+	                        printf("[%d>>%d]LoadBalancingEnd\n", tid, target);
+        	            }
+                	    else if (lb == -2){
+                          	// target is consolidated by some body
+	                        core_state[tid] = CONSOLIDATED;
                             printf("[%d]load_balancing fail\n", tid);
-                            core_state[tid] = ACTIVE;
-                        }
+        	             }
+					  }
                     }
                     else
                     { // CAS failed- someone is consolidating me
-                        printf("[%d]LoadBalance:CASfailed\n");
+                        printf("[%d]LoadBalance:CASfailed\n",tid);
                     }
                 }
             } // end else (core_state == ACTIVE)
