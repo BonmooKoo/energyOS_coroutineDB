@@ -550,6 +550,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
 	core_state[tid] = SLEEPING;
 	sleep_thread(tid);//미리 재움
 	printf("[%d]Wakeup\n",tid);
+	core_state[tid] = STARTED;
     }
     for (int i = 0; i < coro_count; ++i) {
         print_worker(sched, tid, tid * coro_count + i);
@@ -560,7 +561,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
     while (!g_stop.load()) {
         sched.schedule();
         if (++sched_count >= SCHEDULING_TICK) {
-            printf("[%d]Status=%d\n",tid,core_state[tid].load());
+            //printf("[%d]Status=%d\n",tid,core_state[tid].load());
 	    sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
 	    if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED) {
@@ -616,13 +617,14 @@ void master(Scheduler& sched, int tid, int coro_count) {
 		    //3-2-1) first, set my state to CONSOLIDATED to prevent consolidation
 		    if(state_active_to_consol(tid)){
 		    //3-2-2) try load balancing
-		    int i;
-                    for (i = 0; i < MAX_THREADS; i++) {
+		    int target=-1;
+                    for (int i = 0; i < MAX_THREADS; i++) {
                         if (i != tid && sleeping_flags[i]) {
 			    int lb=load_balancing(tid,i);
                             if ( lb >= 0) {
                                 wake_up_thread(i);//깨워
 				core_state[tid]=CONSOLIDATED;
+				target =i;
                             	break;
 			    }
 			    else if (lb ==-2){
@@ -633,7 +635,7 @@ void master(Scheduler& sched, int tid, int coro_count) {
 			    }
                         }
                     }
-		    printf("[%d>>%d]LoadBalancingEnd\n",tid,i);
+		    printf("[%d>>%d]LoadBalancingEnd\n",tid,target);
 		    }
 		    else{//CAS failed- someone is consolidating me
 			
