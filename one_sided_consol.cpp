@@ -455,6 +455,7 @@ int core_consolidation(Scheduler& sched, int tid){
     std::deque<Request> tmp;
     sched.rx_queue.steal_all(tmp); 
     schedulers[target]->rx_queue.push_bulk(tmp);
+    core_state[target] = CONSOLIDATED;
     return target;
 }
 
@@ -462,10 +463,10 @@ int core_consolidation(Scheduler& sched, int tid){
 int load_balancing(int from_tid, int to_tid){
     Scheduler* to_sched   = schedulers[to_tid];
     Scheduler* from_sched = schedulers[from_tid];
-    printf("[%d>>%d]LoadBalancing<%d>\n",from_tid,to_tid,from_sched->work_queue.size());    
+    printf("[%d>>%d]TryLoadBalancing<%d>\n",from_tid,to_tid,from_sched->work_queue.size());    
     if(!state_sleep_to_consol(to_tid)){
 	//이미 SLEEPING이 아님
-    	printf("[%d]Not Sleeping\n",to_tid);
+    	printf("[%d>%d]Not Sleeping\n",from_tid,to_tid);
 	return -2;
     }
     //std::scoped_lock lk(from_sched.mutex, to_sched.mutex);
@@ -480,8 +481,6 @@ int load_balancing(int from_tid, int to_tid){
             to_sched->wait_list.push(std::move(t));
             from_sched->work_queue.pop();
         }
-    core_state[to_tid]=CONSOLIDATED;
-    printf("[%d>>%d]LoadBalancingEnd\n",from_tid,to_tid);    
     return half;
 }
 
@@ -489,6 +488,7 @@ int load_balancing(int from_tid, int to_tid){
 // Request 처리부
 // ===============
 //request handler func
+
 static void process_request_on_worker(const Request& r, int tid, int coroid) {
 	//printf("[Worker%d-%d]%d\n",tid,coroid,r.key);
 }
@@ -560,7 +560,8 @@ void master(Scheduler& sched, int tid, int coro_count) {
     while (!g_stop.load()) {
         sched.schedule();
         if (++sched_count >= SCHEDULING_TICK) {
-            sched_count = 0;
+            printf("[%d]Status=%d\n",tid,core_state[tid].load());
+	    sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
 	    if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED) {
                 core_state[tid] = ACTIVE;
@@ -615,20 +616,24 @@ void master(Scheduler& sched, int tid, int coro_count) {
 		    //3-2-1) first, set my state to CONSOLIDATED to prevent consolidation
 		    if(state_active_to_consol(tid)){
 		    //3-2-2) try load balancing
-                    for (int i = 0; i < MAX_THREADS; i++) {
+		    int i;
+                    for (i = 0; i < MAX_THREADS; i++) {
                         if (i != tid && sleeping_flags[i]) {
 			    int lb=load_balancing(tid,i);
-                            if ( lb > 0) {
+                            if ( lb >= 0) {
                                 wake_up_thread(i);//깨워
 				core_state[tid]=CONSOLIDATED;
-                                break;
-                            }
+                            	break;
+			    }
 			    else if (lb ==-2){
 				// target is consolidated by some body
-				continue;
+				printf("[%d]load_balancing fail\n",tid);
+				core_state[tid]=ACTIVE;
+				break;
 			    }
                         }
                     }
+		    printf("[%d>>%d]LoadBalancingEnd\n",tid,i);
 		    }
 		    else{//CAS failed- someone is consolidating me
 			
