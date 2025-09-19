@@ -247,43 +247,54 @@ public:
         schedulers[tid] = this;
         core_state[tid] = ACTIVE; // 시작시 STARTED 단계로 consolidation을 방지.
     }
-	struct LatSample { uint64_t ts_ns; uint32_t lat_ns; };
-	std::array<LatSample, LAT_CAP> lat_ring{};
-	int lat_idx = 0;   // next write pos
-	int lat_cnt = 0;   // valid count (<= LAT_CAP)
+    struct LatSample
+    {
+        uint64_t ts_ns;
+        uint32_t lat_ns;
+    };
+    std::array<LatSample, LAT_CAP> lat_ring{};
+    int lat_idx = 0; // next write pos
+    int lat_cnt = 0; // valid count (<= LAT_CAP)
 
-	// 요청 완료 직후 호출 (start_ns는 Request.start_time)
-	inline void record_latency(uint64_t start_ns) {
-    	uint64_t end = now_ns();
-	    uint64_t lat = (end > start_ns) ? (end - start_ns) : 0;
-	    lat_ring[lat_idx] = LatSample{ end, (uint32_t)std::min<uint64_t>(lat, UINT32_MAX) };
-	    lat_idx = (lat_idx + 1) & (LAT_CAP - 1);
-	    if (lat_cnt < LAT_CAP) ++lat_cnt;
-	}
+    // 요청 완료 직후 호출 (start_ns는 Request.start_time)
+    inline void record_latency(uint64_t start_ns)
+    {
+        uint64_t end = now_ns();
+        uint64_t lat = (end > start_ns) ? (end - start_ns) : 0;
+        lat_ring[lat_idx] = LatSample{end, (uint32_t)std::min<uint64_t>(lat, UINT32_MAX)};
+        lat_idx = (lat_idx + 1) & (LAT_CAP - 1);
+        if (lat_cnt < LAT_CAP)
+            ++lat_cnt;
+    }
 
-	// 최근 WINDOW_NS에서 p99(ns) 반환. 샘플 부족 시 0
-	uint64_t p99_in_recent_window() const {
-	    if (lat_cnt == 0) return 0;
-	    uint64_t cutoff = now_ns() - WINDOW_NS;
+    // 최근 WINDOW_NS에서 p99(ns) 반환. 샘플 부족 시 0
+    uint64_t p99_in_recent_window() const
+    {
+        if (lat_cnt == 0)
+            return 0;
+        uint64_t cutoff = now_ns() - WINDOW_NS;
 
-    	uint32_t tmp[LAT_CAP];
-	    int k = 0;
+        uint32_t tmp[LAT_CAP];
+        int k = 0;
 
-    	// 최근부터 역순으로 모으면 cutoff 이전에서 빨리 중단 가능
-	    for (int i = 0; i < lat_cnt; ++i) {
-	        int pos = (lat_idx - 1 - i) & (LAT_CAP - 1);
-	        const LatSample &s = lat_ring[pos];
-	        if (s.ts_ns < cutoff) break;
-	        tmp[k++] = s.lat_ns;
-	    }
-	    if (k < 50) return 0; // 윈도우 내 샘플이 너무 적으면 스킵
-	
-	    int idx = (int)std::floor(0.99 * (k - 1));
-	    std::nth_element(tmp, tmp + idx, tmp + k);
-		    return tmp[idx];
-	}
-	
-	bool detect_SLO_violation()
+        // 최근부터 역순으로 모으면 cutoff 이전에서 빨리 중단 가능
+        for (int i = 0; i < lat_cnt; ++i)
+        {
+            int pos = (lat_idx - 1 - i) & (LAT_CAP - 1);
+            const LatSample &s = lat_ring[pos];
+            if (s.ts_ns < cutoff)
+                break;
+            tmp[k++] = s.lat_ns;
+        }
+        if (k < 50)
+            return 0; // 윈도우 내 샘플이 너무 적으면 스킵
+
+        int idx = (int)std::floor(0.99 * (k - 1));
+        std::nth_element(tmp, tmp + idx, tmp + k);
+        return tmp[idx];
+    }
+
+    bool detect_SLO_violation()
     {
         if (rx_queue.size() > Q_B * MAX_Q)
         {
@@ -292,18 +303,22 @@ public:
         else
             return false;
     }
-	bool detect_SLO_violation_slice() {
-    	if (rx_queue.size() > Q_B * MAX_Q) return true; // 기존 조건 유지
-	    uint64_t p99ns = p99_in_recent_window();
-	    bool ret = (p99ns > 0 && p99ns > SLO_NS);
-	    if(ret){
-		printf("Latency Violate\n");
-		return true;
-	    }
-	    else{
-	    	return false;
-	    }
-	}
+    bool detect_SLO_violation_slice()
+    {
+        if (rx_queue.size() > Q_B * MAX_Q)
+            return true; // 기존 조건 유지
+        uint64_t p99ns = p99_in_recent_window();
+        bool ret = (p99ns > 0 && p99ns > SLO_NS);
+        if (ret)
+        {
+            printf("Latency Violate\n");
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     bool is_idle()
     {
@@ -375,8 +390,8 @@ public:
         }
 
         // 2) RDMA poll 확인
-        // int next_id = poll_coroutine(this->thread_id);
-        int next_id = -1;
+        int next_id = poll_coroutine(this->thread_id);
+        //int next_id = -1;
         if (next_id < 0)
         { // no RDMA
             // 2-1) poll 실패 → 일반 코루틴 하나 실행
@@ -555,7 +570,7 @@ int pick_and_lock_target_pow2(int self)
         }
         else
         {
-            printf("CAS{%d}isNOTACTIVE\n", t);
+            //printf("CAS{%d}isNOTACTIVE\n", t);
         }
     }
     return -1; // 둘 다 실패 → 호출부에서 재시도
@@ -689,8 +704,7 @@ void print_worker(Scheduler &sched, int tid, int coroid)
                                             current = yield.get();
                                             continue;
                                         }
-                                    }
-                                });
+                                    } });
 
     Task task(source, tid, coroid, 0);
     sched.emplace(std::move(task));
@@ -701,10 +715,10 @@ void master(Scheduler &sched, int tid, int coro_count)
     bind_cpu(tid);
     if (sleeping_flags[tid])
     {
-        //printf("[%d]Sleep\n", tid);
+        // printf("[%d]Sleep\n", tid);
         core_state[tid] = SLEEPING;
         sleep_thread(tid); // 미리 재움
-        //printf("[%d]Wakeup\n", tid);
+        // printf("[%d]Wakeup\n", tid);
         core_state[tid] = STARTED;
     }
     for (int i = 0; i < coro_count; ++i)
@@ -719,33 +733,34 @@ void master(Scheduler &sched, int tid, int coro_count)
         sched.schedule();
         if (++sched_count >= SCHEDULING_TICK)
         {
-            //printf("[%d]Status=%d\n",tid,core_state[tid].load());
+            // printf("[%d]Status=%d\n",tid,core_state[tid].load());
             sched_count = 0;
             // 3-0) CONSOLIDATED/SLEEPING/STARTED -> ACTIVE
             if (core_state[tid] == SLEEPING || core_state[tid] == CONSOLIDATED || core_state[tid] == STARTED)
             {
                 core_state[tid] = ACTIVE;
             }
-	    else if(core_state[tid] ==CONSOLIDATING){
-		//Do nothing just keep go
-	    }
-            else if(core_state[tid] == ACTIVE )
+            else if (core_state[tid] == CONSOLIDATING)
+            {
+                // Do nothing just keep go
+            }
+            else if (core_state[tid] == ACTIVE)
             {
                 // 3-1) 저부하이면 코어 정리 (core 0은 제외)
                 if (sched.is_idle() && tid != 0)
                 {
-                    //printf("Core[%d] idle\n", tid);
+                    // printf("Core[%d] idle\n", tid);
                     int cc = core_consolidation(sched, tid);
-                    //printf("Core[%d] cc:%d\n", tid, cc);
+                    // printf("Core[%d] cc:%d\n", tid, cc);
                     if (cc >= 0)
                     {
-                        //현재 work_queue의 코루틴이랑 실행전 request 싹 넘겼음
-                        //자기전에 대기중인 RDMA request 다 처리함
-                        while (sched.blocked_num > 0 | sched.rx_queue.size()>0 )
+                        // 현재 work_queue의 코루틴이랑 실행전 request 싹 넘겼음
+                        // 자기전에 대기중인 RDMA request 다 처리함
+                        while (sched.blocked_num > 0 | sched.rx_queue.size() > 0)
                         {
-                           sched.schedule();
+                            sched.schedule();
                         }
-                        //printf("[%d] sleep after CC\n", tid);
+                        // printf("[%d] sleep after CC\n", tid);
                         core_state[tid] = SLEEPING;
                         if (!g_stop.load())
                         {
@@ -762,10 +777,10 @@ void master(Scheduler &sched, int tid, int coro_count)
                         int budget = 4096;
                         while (sched.blocked_num > 0 || sched.work_queue.empty() || budget-- > 0 || sched.rx_queue.size() > 0)
                         {
-                                sched.schedule();
+                            sched.schedule();
                         }
-                        //printf("[%d]Work n Sleep\n", tid);
-			core_state[tid]=SLEEPING;
+                        // printf("[%d]Work n Sleep\n", tid);
+                        core_state[tid] = SLEEPING;
                         if (!g_stop.load())
                         {
                             sleep_thread(tid);         // 넘기고 잠
@@ -779,7 +794,7 @@ void master(Scheduler &sched, int tid, int coro_count)
                 // 3-2) SLO 위반 시 잠자는 스레드 깨워 이관
                 else if (!g_stop.load() && sched.detect_SLO_violation_slice())
                 {
-		    // printf("[%d]DetectSLOviolation\n",tid);
+                    // printf("[%d]DetectSLOviolation\n",tid);
                     // 3-2-1) first, set my state to CONSOLIDATED to prevent consolidation
                     if (state_active_to_consol(tid))
                     {
@@ -790,31 +805,34 @@ void master(Scheduler &sched, int tid, int coro_count)
                             if (i != tid && sleeping_flags[i])
                             {
                                 target = i;
-								break;
+                                break;
                             }
                         }
                         if (target == -1)
                         {
-			     //printf("[%d]No target to LoadBalance\n",tid);
-			     core_state[tid] = CONSOLIDATED;
+                            // printf("[%d]No target to LoadBalance\n",tid);
+                            core_state[tid] = CONSOLIDATED;
                         }
-					else{
-                        int lb = load_balancing(tid, target);
-                        if (lb >= 0){
-                          	wake_up_thread(target); // 깨워
-	                        core_state[tid] = CONSOLIDATED;
-	                        printf("[%d>>%d]LoadBalancingEnd\n", tid, target);
-        	            }
-                	    else if (lb == -2){
-                          	// target is consolidated by some body
-	                        core_state[tid] = CONSOLIDATED;
-                            //printf("[%d]load_balancing fail\n", tid);
-        	             }
-					  }
+                        else
+                        {
+                            int lb = load_balancing(tid, target);
+                            if (lb >= 0)
+                            {
+                                wake_up_thread(target); // 깨워
+                                core_state[tid] = CONSOLIDATED;
+                                printf("[%d>>%d]LoadBalancingEnd\n", tid, target);
+                            }
+                            else if (lb == -2)
+                            {
+                                // target is consolidated by some body
+                                core_state[tid] = CONSOLIDATED;
+                                // printf("[%d]load_balancing fail\n", tid);
+                            }
+                        }
                     }
                     else
                     { // CAS failed- someone is consolidating me
-                        printf("[%d]LoadBalance:CASfailed\n",tid);
+                        printf("[%d]LoadBalance:CASfailed\n", tid);
                     }
                 }
             } // end else (core_state == ACTIVE)
@@ -849,13 +867,15 @@ int main()
 {
     std::thread thread_list[MAX_THREADS];
     printf("RDMA Connection\n");
-    for (int i=0;i<MAX_THREADS;i++){
-    thread_list[i] = std::thread(client_connection,0,MAX_THREADS,i);
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
+        thread_list[i] = std::thread(client_connection, 0, MAX_THREADS, i);
     }
-    for (int i = 0; i < MAX_THREADS; i++) {
+    for (int i = 0; i < MAX_THREADS; i++)
+    {
         thread_list[i].join();
     }
-    
+
     printf("Start\n");
     const int coro_count = 10;  // 워커 코루틴 수
     const int num_thread = 2;   // 워커 스레드 수
@@ -870,8 +890,9 @@ int main()
 
     // 프로듀서 시작 (T초/QPS)
     std::thread producer(timed_producer, num_thread, qps, durationSec);
-    for(int i=num_thread;i<MAX_THREADS;i++){
-	thread_list[i] = std::thread(thread_func, i, coro_count);
+    for (int i = num_thread; i < MAX_THREADS; i++)
+    {
+        thread_list[i] = std::thread(thread_func, i, coro_count);
     }
     sleep(1);
     // 시간 측정
