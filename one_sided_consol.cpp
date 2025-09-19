@@ -669,15 +669,15 @@ void print_worker(Scheduler &sched, int tid, int coroid)
                                         switch (r.type)
                                         {
                                         case OP_PUT:
-                                            // rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
-                                            // current->block_self(coroid);
-                                            process_request_on_worker(r, tid, coroid);
+                                            rdma_write_nopoll(/*client addr*/reinterpret_cast<uint64_t>(&r.value),/*server_addr*/(r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE, 8,0,tid,coroid);
+                                            current->block_self(coroid);
+                                            //process_request_on_worker(r, tid, coroid);
                                             yield();
                                             current = yield.get(); // RDMA poll됨.
                                             break;
                                         case OP_GET:
-                                            // rdma_read_nopoll((r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE,8, 0, tid, coroid);
-                                            // current->block_self(coroid);
+                                            rdma_read_nopoll((r.key % (ALLOCSIZE / SIZEOFNODE)) * SIZEOFNODE,8, 0, tid, coroid);
+                                            current->block_self(coroid);
                                             process_request_on_worker(r, tid, coroid);
                                             yield();
                                             current = yield.get(); // RDMA poll됨.
@@ -701,10 +701,10 @@ void master(Scheduler &sched, int tid, int coro_count)
     bind_cpu(tid);
     if (sleeping_flags[tid])
     {
-        printf("[%d]Sleep\n", tid);
+        //printf("[%d]Sleep\n", tid);
         core_state[tid] = SLEEPING;
         sleep_thread(tid); // 미리 재움
-        printf("[%d]Wakeup\n", tid);
+        //printf("[%d]Wakeup\n", tid);
         core_state[tid] = STARTED;
     }
     for (int i = 0; i < coro_count; ++i)
@@ -726,22 +726,26 @@ void master(Scheduler &sched, int tid, int coro_count)
             {
                 core_state[tid] = ACTIVE;
             }
-            else
+	    else if(core_state[tid] ==CONSOLIDATING){
+		//Do nothing just keep go
+	    }
+            else if(core_state[tid] == ACTIVE )
             {
                 // 3-1) 저부하이면 코어 정리 (core 0은 제외)
                 if (sched.is_idle() && tid != 0)
                 {
-                    printf("Core[%d] idle\n", tid);
+                    //printf("Core[%d] idle\n", tid);
                     int cc = core_consolidation(sched, tid);
-                    printf("Core[%d] cc:%d\n", tid, cc);
+                    //printf("Core[%d] cc:%d\n", tid, cc);
                     if (cc >= 0)
                     {
-                        // 대기중인 RDMA request 다 처리함
+                        //현재 work_queue의 코루틴이랑 실행전 request 싹 넘겼음
+                        //자기전에 대기중인 RDMA request 다 처리함
                         while (sched.blocked_num > 0 | sched.rx_queue.size()>0 )
                         {
                            sched.schedule();
                         }
-                        printf("[%d] sleep after CC\n", tid);
+                        //printf("[%d] sleep after CC\n", tid);
                         core_state[tid] = SLEEPING;
                         if (!g_stop.load())
                         {
@@ -760,8 +764,8 @@ void master(Scheduler &sched, int tid, int coro_count)
                         {
                                 sched.schedule();
                         }
-                        printf("[%d]Work n Sleep\n", tid);
-					    core_state[tid]=SLEEPING;
+                        //printf("[%d]Work n Sleep\n", tid);
+			core_state[tid]=SLEEPING;
                         if (!g_stop.load())
                         {
                             sleep_thread(tid);         // 넘기고 잠
@@ -775,7 +779,7 @@ void master(Scheduler &sched, int tid, int coro_count)
                 // 3-2) SLO 위반 시 잠자는 스레드 깨워 이관
                 else if (!g_stop.load() && sched.detect_SLO_violation_slice())
                 {
-		    		printf("[%d]DetectSLOviolation\n",tid);
+		    // printf("[%d]DetectSLOviolation\n",tid);
                     // 3-2-1) first, set my state to CONSOLIDATED to prevent consolidation
                     if (state_active_to_consol(tid))
                     {
@@ -791,7 +795,7 @@ void master(Scheduler &sched, int tid, int coro_count)
                         }
                         if (target == -1)
                         {
-			     printf("[%d]No target to LoadBalance\n",tid);
+			     //printf("[%d]No target to LoadBalance\n",tid);
 			     core_state[tid] = CONSOLIDATED;
                         }
 					else{
@@ -804,7 +808,7 @@ void master(Scheduler &sched, int tid, int coro_count)
                 	    else if (lb == -2){
                           	// target is consolidated by some body
 	                        core_state[tid] = CONSOLIDATED;
-                            printf("[%d]load_balancing fail\n", tid);
+                            //printf("[%d]load_balancing fail\n", tid);
         	             }
 					  }
                     }
@@ -844,14 +848,14 @@ void timed_producer(int num_thread, int qps, int durationSec);
 int main()
 {
     std::thread thread_list[MAX_THREADS];
-    /*printf("RDMA Connection\n");
+    printf("RDMA Connection\n");
     for (int i=0;i<MAX_THREADS;i++){
     thread_list[i] = std::thread(client_connection,0,MAX_THREADS,i);
     }
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_list[i].join();
     }
-    */
+    
     printf("Start\n");
     const int coro_count = 10;  // 워커 코루틴 수
     const int num_thread = 2;   // 워커 스레드 수
@@ -866,12 +870,15 @@ int main()
 
     // 프로듀서 시작 (T초/QPS)
     std::thread producer(timed_producer, num_thread, qps, durationSec);
-
+    for(int i=num_thread;i<MAX_THREADS;i++){
+	thread_list[i] = std::thread(thread_func, i, coro_count);
+    }
+    sleep(1);
     // 시간 측정
     uint64_t now = std::time(nullptr);
     printf("Start time : %lu \n", now);
     // 워커 시작
-    for (int i = 0; i < MAX_THREADS; i++)
+    for (int i = 0; i < num_thread; i++)
     {
         thread_list[i] = std::thread(thread_func, i, coro_count);
     }
